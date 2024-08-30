@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Portfolio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #35424a;
+            color: white;
+            text-align: center;
+            padding: 1rem;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        .project {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .project h3 {
+            margin-top: 0;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            background-color: #ddd;
+            cursor: pointer;
+        }
+        .tab-content {
+            display: none;
+        }
+        #tab1:target, #tab2:target, #tab3:target {
+            display: block;
+        }
+        #tab1:target ~ .tabs .tab1,
+        #tab2:target ~ .tabs .tab2,
+        #tab3:target ~ .tabs .tab3 {
+            background-color: #fff;
+            font-weight: bold;
+        }
+        #tab1:not(:target) ~ #tab1,
+        #tab2:not(:target) ~ #tab2:not(:target) ~ #tab1,
+        #tab3:not(:target) ~ #tab3:not(:target) ~ #tab2:not(:target) ~ #tab1 {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>latentCall145</h1>
+    </header>
+
+    <div class="container">
+       <div class="tabs">
+            <a href="#tab1" class="tab tab1">About</a>
+            <a href="#tab2" class="tab tab2">Projects</a>
+            <a href="#tab3" class="tab tab3">Random</a>
+        </div>
+
+        <div id="tab1" class="tab-content">
+            <h2>About Me</h2>
+            <img src="assets/turtle32.png">
+            <p>I'm passionate about machine learning and their applications, especially generative image/video models. Also likes performance optimization, whether it be CPUs, GPUs, TPUs, or pretty much anything else.</p>
+        </div>
+
+        <div id="tab2" class="tab-content">
+            <h2>My Projects</h2>
+
+            <div class="project">
+                <p>GPU-Optimized Group Normalization (<a href="https://github.com/latentCall145/channels-last-groupnorm">src</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools used: CUDA, C++, Nvidia Nsight Compute, PyTorch</li>
+                        <li>Yielded up to 2x speedup over PyTorch’s group normalization implementation by rewriting CUDA kernels, tuning kernel
+                        configurations and memory access schemes, and profiling kernels using Nvidia Nsight Compute</li>
+                        <li>Sped up end-to-end CNN training by 35% and reduced memory usage by 30% by leveraging faster memory formats (NHWC) and fusing normalization with activation functions </li>
+                        <li>Open-sourced code as well as a <a href="https://drive.google.com/file/d/1c-FvwCT6FWw5eYI-MqyNc311mrnKV6un/view?usp=sharing">document</a> deriving the forward/backward pass</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Generative Text-to-Image AI From Scratch (<a href="https://github.com/latentCall145/latent-diffusion">src</a>, <a href="https://wandb.ai/tiewa_enguin/tpu_ldm_ddpm_v2/reports/Attempting-to-Train-Stable-Diffusion-From-Scratch-For-Free--Vmlldzo1MTYxNjU0">report</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: Python, PyTorch/XLA, Tensorboard, Weights &amp; Biases</li>
+                        <li>Reimplemented and trained a generative text-to-image denoising diffusion probabilistic model from scratch on an 800 GB subset of the laion2B-en image-caption dataset</li>
+                        <li>Increased model training efficiency as measured by hardware utilization on a Google TPU-v3-8 AI chip from 23.4% to 68.0% using PyTorch/XLA and Tensorboard</li>
+                        <li>Tracked model experiments, training progress, and wrote reports to document my work using Weights &amp; Biases</li>
+                        <li>The diffusion model is a successor to another generative image model I've made from scratch (<a href="https://github.com/latentCall145/StyleGAN-ADA">StyleGAN2-ADA</a>)</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Large Model Optimization (<a href="https://www.youtube.com/playlist?list=PL4b-zilJCGHee4xKytB04CsAKB3ECXk7k">video</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools used: Huggingface Diffusers, Nvidia Nsight Systems, PyTorch, Python</li>
+                        <li>Reduced memory usage of 12 billion parameter text-to-image model (FLUX.1) inference by 66x over naive methods using Huggingface Diffusers</li>
+                        <li>Halved memory usage and sped up inference by 40% over publicly available Diffusers codebase by patching source code to use low-precision CuBLAS matrix multiplication algorithms, operator fusion, and activation freeing</li>
+                        <li>Reduced inference time on NVIDIA Volta GPUs by <a href="https://github.com/huggingface/diffusers/issues/9095">4.4x</a> by merging a <a href="https://github.com/huggingface/diffusers/pull/9097">pull request</a> into Huggingface Diffusers which fixed FLUX.1 numerical overflow with float16 inputs</li>
+                        <li>Eliminated any latency or memory consumption when quantizing models in Huggingface Quanto by fixing a bug regarding needless weight initialization in quantized modules (<a href="https://github.com/huggingface/optimum-quanto/pull/297">bug fix</a> merged into main codebase)</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>CoxLines: Rowing Data Collection + Analysis Tool</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: NumPy, PyQt, Pandas, Matplotlib, Swift, XCode</li>
+                        <li>Developed iOS app via Swift/XCode to collect GPS, accelerometer, gyroscope, and microphone data from a rowing shell</li>
+                        <li>Designed a GUI using PyQt, NumPy, and Pandas to visualize boat position, speed, and steering effectiveness, which is also synced with microphone recordings</li>
+                        <li>Collected 30+ hours of rowing data (and 300+ km of rowing/running data) using CoxLines and analyzed data using GUI and Matplotlib to identify areas of technical improvement within varsity boats</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>AI Image/Video Upscaling (<a href="https://github.com/latentCall145/esrGAN">model src</a>, <a href="https://github.com/latentCall145/srGANWeb">web app src</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: PyTorch, TensorFlow, Keras, Flask, HTML, CSS</li>
+                        <li>Implemented generative adversarial networks (SRGAN, ESRGAN, Real-ESRGAN, BasicVSR) for image and video upscaling using TensorFlow, Keras, and PyTorch from scratch</li>
+                        <li>Designed a web app via Flask, HTML, and CSS to upload and upscale images</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Deep Learning in C (<a href="https://github.com/latentCall145/nnic2">src</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: C</li>
+                        <li>Trained a neural network (an MLP to be specific) to recognize images from the MNIST numbers dataset entirely in C, covering file processing, forward passes, backpropagation, and model optimization</li>
+                        <li>Implemented a BLAS matrix multiplication algorithm reaching 80% performance of OpenBLAS (fastest open-source implementation)</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Neural Network Framework (<a href="https://github.com/latentCall145/nnfs/tree/main">src</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: NumPy, Python</li>
+                        <li>Created a basic neural network framework which supports construction, inference, and training of MLPs and CNNs</li>
+                        <li>Layers: linear, 2D convolution (dense and depthwise), nearest-neighbor upsampling, max/average pooling, flatten, ReLU, leaky ReLU, sigmoid, softmax</li>
+                        <li>Losses: L2, cross-entropy</li>
+                        <li>Optimizers: SGD (with momentum), Adam</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Othello Engine</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: Python</li>
+                        <li>Designed a Python Othello engine using minimax, alpha-beta pruning, and evolutionary algorithms</li>
+                        <li>Boosted engine end-game performance by using linear regression of board state evaluations trained on 10,000+ Othello games of the engine playing against itself</li>
+                        <li>Play <a href=https://othello.tjhsst.edu/play/>here</a>: (my AI is 2023tnguyen)</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>15-Puzzle Solver (<a href="https://github.com/latentCall145/DeepCubeA">src</a>)</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: Python, PyTorch</li>
+                        <li>Boosted 15-puzzle solving speed 9x over baseline using A* and additive pattern database (PDB) heuristics in Python (note: this project was an extension of a class assignment; the baseline was a canonical solution which also used A* with an improved Manhattan distance heuristic)</li>
+                        <li>Trained reinforcement learning neural network heuristic (DeepCubeA) using PyTorch for a 1.25-14x speedup over PDB solver</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Image Compression via Clustering</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: Python, NumPy</li>
+                        <li>Used K-Means clustering on image pixel values to determine the best colors to represent an image using NumPy</li>
+                        <li>Sped up Scikit-learn’s Gaussian mixture model implementation by 7x for the same task by modifying model update equations to avoid recomputation of repeated pixel values</li>
+                    </ul>
+                </details>
+            </div>
+            <div class="project">
+                <p>Blackjack AI</p>
+                <details>
+                    <summary>Show Details</summary>
+                    <ul>
+                        <li>Tools Used: Python</li>
+                        <li>Simulated 25M+ blackjack games with Python multiprocessing to generate win probabilities of blackjack states given player/dealer hands and deck card counts</li>
+                        <li>Used expectiminimax and the Kelly criterion to determine optimal blackjack and betting policy</li>
+                        <li>Outperforms basic betting strategies 54% of the time and yields an average return of 0.1% per round based on a simulation of 10M 5-game rounds with one deck</li>
+                    </ul>
+                </details>
+            </div>
+        </div>
+
+        <div id="tab3" class="tab-content">
+            <h2>Random</h2>
+            <ul>
+                <li>Hardware: Dell Inspiron 16 Plus 7620 (Intel-i7 12700H, Nvidia 3060 Max-Q, 32GB RAM)</li>
+                <li>OS: Ubuntu 24.04</li>
+                <li>Window Manager: i3</li>
+                <li>Editor: Vim</li>
+                <li>Other software I like: Gtimelog, Signal</li>
+            </ul>
+        </div>
+
+        <section id="contact">
+            <p>Email: tonanhhoaduc@gmail.com</p>
+        </section>
+        <p>Template made by Claude 3.5 Sonnet. web dev is not my passion</p>
+    </div>
+</body>
+</html>
