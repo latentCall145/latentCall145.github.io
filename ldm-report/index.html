@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>latentCall145</title>
+        <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
+        <link rel="stylesheet" href="../style.css">
+        <style>
+            .container {
+                background-color: #ffffff;
+            }
+            table, th, td {
+                border: 1px solid black;
+                padding: 10px;
+                border-collapse: collapse;
+            }
+            pre {
+                background-color: #f4f4f4;
+                overflow: auto;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .caption {
+                color: #6c7a89;
+                font-style: italic;
+                padding: 0px;
+                margin: 0px;
+                margin-bottom: 40px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="navbar">
+            <a href="../index.html"><b>latentCall145</b></a>
+            <a href="../projects/index.html">Projects</a>
+            <a href="../random/index.html">Random</a>
+        </div>
+        <div class="container">
+            <p style="color:red;"><i>The original version of this report can be found at Weights &amp; Biases (the W&amp;B version also includes some interactive graphs); <a href="https://wandb.ai/tiewa_enguin/tpu_ldm_ddpm_v2/reports/Attempting-to-Train-Stable-Diffusion-From-Scratch-For-Free--Vmlldzo1MTYxNjU0">link</a></i></p>
+            <h1>Attempting to Train Stable Diffusion From Scratch For Free</h1>
+            <i>
+            <p>A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources</p>
+            <p>Published by latentCall145 on August 17, 2023 (see bottom of page for changelog)</p>
+            </i>
+            <div class="scrollbox">
+                <img src="assets/preds-90112.webp">
+            </div>
+            <p class="caption">Non-cherry-picked generated outputs after 90k steps at batch size 1024, lr=1e-4, ~25 million img subset of laion2B-en.</p>
+            <h2>Introduction</h2>
+            <p> I always wanted to know how Stable Diffusion worked. So, I've been working on this project since last year but I had to put a hold on it because of school, but I resumed it this summer. I implemented the VAE and DM training and got some results before I held the project, so this summer I wanted to make a version which: </p>
+            <ol>
+                <li>Is free of cost</li>
+                <li>Gives reasonable image outputs for a text input</li>
+                <li>Trains fast</li>
+            </ol>
+            </p> Goal 1 was already dealt with because there aren't that many services that just provides free AI compute. The ones I found through some research is Google Colab, Kaggle, and Paperspace. </p>
+            <div class="scrollbox">
+                <table>
+                    <tr>
+                        <th>Compute Provider</th>
+                        <th>GPU Compute</th>
+                        <th>TPU Compute</th>
+                        <th>Time per interactive session (hours)</th>
+                        <th>Quota per week (hours)</th>
+                    </tr>
+                    <tr>
+                        <td>Colab</td>
+                        <td>T4 (V100 on rare occasions) (16 GiB)</td>
+                        <td>TPU-v2-8 (8 GiB / device)</td>
+                        <td>&lt; 4 </td>
+                        <td>like 10-20?</td>
+                    </tr>
+                    <tr>
+                        <td>Kaggle</td>
+                        <td>P100 (16 GiB, no mixed precision)<br> OR 2 x T4 (16 GiB / device)</td>
+                        <td>TPU-v3-8 (16 GiB / device)</td>
+                        <td>9</td>
+                        <td>30-40 (GPU)<br>20 (TPU)
+                    </tr>
+                    <tr>
+                        <td>Paperspace</td>
+                        <td>M4000 (8 GiB, no mixed precision)</td>
+                        <td>N/A</td>
+                        <td>8</td>
+                        <td>varies on GPU availability</td>
+                    </tr>
+                </table>
+            </div>
+            <p> Of these three, Kaggle provides both the fastest hardware for GPU and TPU, the longest interactive session time, and the longest quota out of all the options. In general, when training large models, Kaggle is the only good compute option. Kaggle also provides users to create unlimited datasets. </p>
+            <p> Goal 2 was also relatively easy. Since I had a training script which could train an LDM (latent diffusion model, this is Stable Diffusion's architecture), I just had to train longer on more data. So I 10x-ed my dataset, from 80 GB (~2.56 million images) of images resized to 256x256 to 800 GB worth of images from the LAION-2.6B-en dataset (collected with img2dataset). Even with 10x the data, 25.6 million images is still tiny compared to the full LAION-5B or even the LAION-400M dataset, so I wouldn't know if I had enough images until I trained the DM for a while. </p>
+            <p> Goal 3 is the interesting one. To train a big model fast, the best free option that I have is Kaggle's TPU-v3-8 because it contains 4 chips (each with two cores, 4 chips * 2 cores/chip = <b>8 cores</b> so TPU-v3-<b>8</b>), each chip having 123 TFLOPs of bfloat16 compute (so 4 chips * 123 TFLOPs/chip = 492 TFLOPs) [<a href="#references">1</a>] as compared to the P100's 10.6 TFLOPs [<a href="#references">2</a>] and the T4's "65 TFLOPs in mixed precision" [<a href="#references">3</a>] even though from my experience, a T4 using mixed precision is only slightly faster than a P100 in real-world training. Let's just assume that a T4 has 11 TFLOPs of mixed precision compute so two T4s has 22 TFLOPs, meaning that a TPU-v3-8 can be up to 22.4x faster than the fastest GPU combination freely available! TPUs it is. </p>
+            <p>But TPUs come with some of their own problems.</p>
+            <ol>
+                <li>TPUs have been very difficult for me to utilize effectively. While a TPU at 10% FLOPs utilization is still 2.24x as fast as two T4s, I literally have never seen TPU utilization go above 40% in any of my previous projects. However, part of this project was to understand how to get the monster FLOPs utilization seen in other large models (e.g. 54.9% model FLOPs utilization over 1024 TPU-v4s in ViT-22B [<a href="#references">4, 5</a>]), so I welcomed this challenge.</li>
+                <li>Kaggle TPU availability varies on the time of day and during peak usage hours (generally 2-8 PM UTC), you may have to wait up to two hours to get a hold of one.</li>
+                <li>TPUs require models to be compiled via XLA to be run. For the LDM that I trained (508 million parameter UNet), it takes around 30 minutes before the model actually trains on the TPU which makes profiling the model slow and painful.</li>
+                <li>Although I'm using torch_xla, XLA runs via TensorFlow which is notorious for having errors that make zero sense and generally being hard to debug.</li>
+                <li>Kaggle can't seem to control TPU sessions very well. Sometimes I run all notebook cells but some cells choose not to run so I have to rerun all notebook cells. Often I cancel a cell's execution and it doesn't stop unless I cancel it twice. Nearly every time I restart a session, Kaggle doesn't let me run any cells unless I restart it again. Most infuriating of them all, sometimes XLA runs into an error (usually an OOM) and the notebook just hangs. I cancel the cell execution, and nothing happens. I restart the session, and nothing happens. I restart it again, and nothing happens. The ONLY way I found to get around this situation is to factory reset the notebook, which sucks when you waited an hour to get a TPU session, wait 30 minutes for the model to compile, run into an error which hangs the notebook, and then now you have to wait another hour to have the factory reset-ted session to start running because you're working during TPU peak hours so you're #27 in the TPU queue. All of this happens exclusively on Kaggle TPU sessions.</li>
+            </ol>
+            <p>But TPUs are fast, so I'll work with it.</p>
+            <h2>Optimization Tricks</h2>
+            <p>Note: These are ordered from when I found them.</p>
+            <h3>Logging loss every 32 steps (instead of every step)</h3>
+            <p> The PyTorch XLA guide states to log every N steps [<a href="#references">10</a>] and in general, when accessing the loss' values for logging, there is a TransferFromServer (TPU → CPU) event which adds some idle time. I chose 32 steps since that means that losses would be logged every one or two minutes, which is as often as I'd like without adding too much idle time. </p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/nodynamo-vae-clip/log-loss-idle-time.webp">
+            </div>
+            <p class="caption">The trace viewer showing idle time (circled in red) caused by logging loss. Notice the purple TransferFromServer call before the idle time which gets called every time the loss is logged.</p>
+            <h3>Writing my own multi-head attention PyTorch module</h3>
+            <p> I initially made my own module over using PyTorch's MultiheadAttention layer because I wanted to be able to swap the scaled dot product attention portion with FlashAttention2 [<a href="#references">6</a>], which is both faster and uses less memory than PyTorch's attention function, which uses either xFormers or the 1st-gen FlashAttention. Also, PyTorch's MultiheadAttention takes in three inputs (query, key, value) when most of the time I'm running self-attention so I wanted an attention module which takes either one (self attention) or two inputs (cross attention). This allows for a simpler implementation for the model's forward passes. But it turns out that my custom module actually runs slightly faster on GPU and TPU and with slightly less memory usage! I'm not entirely sure why, but I'll take it.</p>
+            <h3>Using SiLU instead of GELU</h3>
+            <p> Stable Diffusion uses the GELU activation function so I copied it in my models. But when profiling and viewing the graphs of some test models which used GELU (e.g. a single transformer block), I noticed that there was a complicated operation which I realized came from GELU. This is because GELU is a pretty weird function [<a href="#references">7</a>] which doesn't seem to have primitive ops on a TPU (although it is optimized on GPU). While using the tanh approximation of GELU did increase my FLOPs utilization, I got even more from just using the SiLU activation function, which is just x * sigmoid(x), which is optimized on TPU since sigmoid is an XLA primitive op. This probably also explains why ViT-22B and PaLM use SwiGLU instead of GEGLU [<a href="#references">4, 5</a>] even though GEGLU allows for a slightly lower loss when training [<a href="#references">8</a>].</p>
+            <h3>Splitting heads smarter</h3>
+            <p> PyTorch's scaled dot product attention function takes inputs of shape (B, H, L, D) where B = batch size, H = number of heads, L = number of tokens, D = dimension per head. Let's call these dimensions after their size, so the attention input has the dimensions B, H, L, and D. Multi-head attention inputs are generally shaped (B, L, H*D) so I needed to rearrange these tensors before feeding them into the scaled dot product function. At first, I did:</p>
+            <pre><code>
+def slower_split_heads(x):
+    splitted = x.reshape(B, L, D, H) # B L (D*H) → B L D H
+    return splitted.permute(0, 3, 1, 2) # B L D H → B H L D; this can be fed into torch.nn.functional.scaled_dot_product_attention
+            </code></pre>
+            <p>However, a slightly better way to do this is:</p>
+            <pre><code>
+def faster_split_heads(x):
+    splitted = x.reshape(B, L, H, D) # B L (H*D) → B L H D
+    return splitted.permute(0, 2, 1, 3) # B L H D → B H L D; this can be fed into torch.nn.functional.scaled_dot_product_attention 
+            </code></pre>
+            <p> The difference lies in the permute arguments, as the faster function preserves the relative ordering of the input's dimensions (i.e. which dimensions come before others) as best as possible. To clarify, in the faster function, notice how H comes before D in the tensor named "splitted" and in the returned tensor (ignoring any dimensions between H and D). This is not the case in the slower function, as D comes before H in "splitted" but H comes before in the returned tensor. In general, the fastest permutations are the ones where the relative ordering of the input's dimensions is similar to the relative ordering of the output's dimensions. I'm pretty sure this is because of cache locality; it's out of the scope for this project but here are some references if you're not aware of it and are curious: [<a href="#references">12, 13, 14</a>] </p>
+            <h3>Avoiding torch.split like the plague</h3>
+            <p> The TensorFlow TPU performance guide states to avoid unnecessary slices (and concatenations) [<a href="#references">11</a>], and since torch.split is a function that slices a tensor, it's not that fast on TPUs. I didn't learn to avoid torch.split from the TensorFlow TPU guide since I was on PyTorch, but while profiling my multi-head attention module, I was surprised to see a performance increase when I essentially changed:</p>
+            <pre><code>
+def slower_self_attention(x): # BEFORE
+    qkv_proj = nn.Linear(embed_dim, 3*embed_dim)(x)
+    q, k, v = torch.split(qkv_proj, embed_dim, dim=1)
+    # scaled dot product attention and linear projection
+
+def faster_self_attention(x): # AFTER
+    q = nn.Linear(embed_dim, embed_dim)(x)
+    k = nn.Linear(embed_dim, embed_dim)(x)
+    v = nn.Linear(embed_dim, embed_dim)(x)
+    # scaled dot product attention and linear projection 
+            </code></pre>
+            <p> Apparently, having three Linear layers is faster than using torch.split, so I removed nearly all instances of torch.split. This includes the QKV projections as shown above but also the gating mechanism in the SwiGLU layer:</p>
+            <pre><code>
+def slower_swiglu(x): # BEFORE
+    lin_gate = nn.Linear(channels, 2*channels)(x)
+    lin, gate = torch.split(lin_gate, channels)
+    return lin * torch.nn.functional.silu(gate)
+
+def faster_swiglu(x): # AFTER
+    lin = nn.Linear(channels, channels)(x)
+    gate = nn.Linear(channels, channels)(x)
+    return lin * torch.nn.functional.silu(gate) 
+            </code></pre>
+            <p> I still use torch.split when splitting the VAE output into mean and log-variance tensors since I realized I used it after I trained the VAE, but I doubt causes much slowdown since this shouldn't take much time to execute and is only called once per training step).</p>
+            <h3>Removing biases in transformer blocks</h3>
+            <p> I heard that people started removing biases in transformers [<a href="#references">17</a>] and it gave me about 3% more FLOPs utilization when profiling transformer layers so I did it... not much else to it.</p>
+            <h3>Modifying VAE and DM architecture to be TPU-friendly</h3>
+            <p>When checking Tensorboard traces while training these unmodified networks, I saw that VAE inference took the vast majority of the computation. This is because I had my VAE and DM perform 16x and 8x downsampling respectively, which means that a 256x256 image would eventually be downsampled into a 2x2 tensor. This is ... really small. The less computation there is to do, the worse that GPUs/TPUs can be utilized, so downsampling images to 2x2 is not a good idea.</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/small-models/op-profile.webp">
+            </div>
+            <p class="caption">Small model = bad FLOPs utilization</p>
+            <p>Instead, the modified VAE had 8x downsampling with 4x less latent channels (16x16x16 → 32x32x4 latent, by the way this is the latent size described in the LDM paper), and the modified DM had 4x downsampling. Now, the smallest tensors in modified DM will still have an 8x8 spatial dimension, meaning that TPUs can run convolutions more efficiently on them. Also, the DM's downsampling is similar to Stable Diffusion XL [<a href="#references">19</a>], so I took it one step further by copying how SDXL partitions its transformer blocks. In the original SD model, there was one transformer block for every down/up sampling, whereas SDXL has a <i>[0, 2, 10]</i> scheme (no blocks at the highest resolution, two blocks at the middle resolution, and ten blocks at the lowest resolution). To fit in memory, my model had a <i>[0, 1, 2]</i> scheme, shifting the attention block at the highest (thus most memory-consuming) resolution to the lowest resolution.</p>
+            <h3>Using larger batch sizes to hide CPU bottleneck</h3>
+            Using a large batch size is the first thing that most TPU performance guides tell you to do, but this optimization took me a while to find specifically when training the DM because I had nearly no idle time training the VAE with a per-device batch size of 32 (batch size of 256 over all eight chips), but had 42.7% idle time when training the DM with the same batch size. This is because XLA requires a graph of the training loop to be traced for every training step [<a href="#references">10</a>], which uses up some CPU time. Since the VAE was a relatively simple model, tracing time was not an issue, but the DM was significantly larger, so I needed much larger batch sizes to reduce idle time. At the time, I didn't know about that the CPU time was caused by tracing, but I found out that increasing the batch size increased the TPU execution time but not the CPU time, so I just pushed the batch size to as large as I could. I eventually settled on a batch size of 128 (although I got up to 192) because it was the largest batch size which I could train on without running out of CPU memory while compiling. With a per-device batch size of 128, I had only 12.1% idle time, which was far better than the 42.7% I had earlier. 
+            <p>Along with the more TPU-friendly models, training utilizes TPUs much more effectively, going from 23.4% to 55.3% FLOPs utilization at a per-device batch size of 128.</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/nodynamo-vae-clip/op-profile.webp">
+            </div>
+            <p class="caption">Better model utilization now. But 19.5% of training time is idle, we can still do better!</p>
+            <p>I'm shocked by the fact that I was able to train a batch size of 128 with only 16 GiB of memory per chip, XLA is crazy effective. Here are some memory logs:</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/text-embedder-memory.webp">
+            </div>
+            <p class="caption">Memory viewer for the CLIP embedder. For a batch size of 128, it only uses 330 MiB!</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/dm-memory.webp">
+            </div>
+            <p class="caption">Memory viewer for the VAE and DM. For batch size 128, these use almost 14 GiB of memory.</p>
+            <h3>Using torch.compile(..., backend='torch_xla_trace_once') for the VAE and CLIP embedder</h3>
+            <p>January 5, 2024 update: I think you're supposed to set the backend to 'openxla_eval' now. </p>
+            <p>While I removed most of the idle time by logging less frequently, I noticed some idle time on some steps that had didn't seem to be caused by logging (no TransferFromServer calls). Rather, the idle time seemed to have been caused by some bottlenecks:</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/nodynamo-vae-clip/trace-viewer.webp">
+            </div>
+            <p class="caption">More trace viewer snapshots showing idle time even without TransferFromServer (loss logging calls).</p>
+            <p>After some searching, I found a GitHub issue with a similar problem. Apparently, the problem was that there was a CPU bottleneck from tracing, causing the idle time. The proposed solution was:</p>
+            <q><i>If this model is tracing bound, I think maybe we should give dynamo a try</i></q>
+            <p>So I tested this idea with a full-sized VAE, a small CLIP embedder (CLIP-base-32), and a tiny DM. I tried to wrap the DM with torch.compile (which uses TorchDynamo) and ... it did not work. The program would just keep hanging, even in the debug mode, so I tried compiling just the VAE and CLIP embedder which gave some results (2.7 steps/s → 2.9 steps/s; each step became faster 0.0255 s faster).</p>
+            <p>This was a bit disappointing since a training step with the full-sized DM took around two seconds. This optimization's speedup should've been unrelated to the DM's size since I didn't compile the DM, so I expected this speedup to be negligible (about 0.0255 / 2 = 1.27% speedup) when training. Unsatisfied by a 1% speedup, I continued attempting to compile the DM with TorchDynamo. I eventually got it to train (only when using one TPU core) but I had to reduce the batch size 8x (128 → 16 per-device batch size) to get the thing to fit into memory. And I was running out of Kaggle TPU time, so I just ran a training run using torch.compile only on the VAE and CLIP embedder.</p>
+            <p>Yet when I resumed training with what I expected to be a 1% speedup, I got a 25% speedup, with step time going down to 1.6 s/step. Apparently torch.compile made the DM forward, backward, and optimizer step run WAY faster in the Python processes (I'll stress it again, <b>I didn't compile the DM or the optimizer</b>)! I don't know why, but I'll take it.</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/trace-viewer.webp">
+            </div>
+            <p class="caption">Trace viewer when compiling the VAE and CLIP embedder. Look, no idle time!</p>
+            <div class="scrollbox">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/op-profile.webp">
+            </div>
+            <p class="caption">FLOPs utilization goes from 55.3% without compiling to 68.4% when compiling the VAE and CLIP embedder with torch.compile. Actually, I think FLOPs utilization is closer to 65% since this snapshot didn't profile any loss logging which adds some idle time.</p>
+            <h3>Optimization Summary</h3>
+            <h4>Micro-optimizations (no FLOPs utilization increases recorded for these)</h4>
+            <ul>
+                <li>Logging loss every 32 steps</li>
+                <li>Writing custom multi-head attention class</li>
+                <li>Replacing GELU with SiLU</li>
+                <li>Better attention head splitting</li>
+                <li>Reduce usage of torch.split</li>
+                <li>No biases in transformer blocks</li>
+            </ul>
+            <h4>Macro-optimizations</h4>
+            <table>
+                <tr>
+                    <th>Optimization description</th>
+                    <th>FLOPs utilization (%)</th>
+                    <th>Idle time (%)</th>
+                    <th>FLOPs utilization increase over previous optimization</th>
+                    <th>FLOPs utilization increase over baseline</th>
+                </tr>
+                <tr>
+                    <td>baseline (small models, per-device batch size=32)</td>
+                    <td>23.4</td>
+                    <td>61.1</td>
+                    <td>1.00</td>
+                    <td>1.00</td>
+                </tr>
+                <tr>
+                    <td>TPU-friendly models + per-device batch size=128</td>
+                    <td>55.3</td>
+                    <td>19.5</td>
+                    <td>2.36</td>
+                    <td>2.36</td>
+                </tr>
+                <tr>
+                    <td>Compile VAE and CLIP embedder with torch.compile</td>
+                    <td>68.4</td>
+                    <td>6.2</td>
+                    <td>1.24</td>
+                    <td>2.92</td>
+                </tr>
+            </table>
+
+            <h2>Strange Bugs</h2>
+            <p>Note: These are also ordered from when I found them.</p>
+            <h3>XLA_USE_BF16=1 destroys training</h3>
+            <p>Mixed precision is faster. Using just bfloat16 can speed up TPU training by up to 60% [<a href="#references">9</a>], and PyTorch allows this by setting the environment variable XLA_USE_BF16=1 [<a href="#references">10</a>]. However, while the model forward and backward passes work fine in bfloat16, the noise schedule in the DM (as well as the DDIM sampler) requires the float32 precision, which I realized when all of the DM outputs was black after some training. Inspecting many components of my training script, I eventually found that the noise variances in the noise scheduler would differ between bfloat16 and float32, which messed with the signal and noise variances for each step.</p>
+            <div class="scrollbox">
+                <img src="assets/bf16-vs-fp32-signal-var.webp">
+            </div>
+            <p class="caption">Using bfloat16 results in strange noise scheduler behavior when compared to float32.</p>
+            <p>Specifically, in the DDIMSampler code, there are lines:</p>
+            <pre><code>
+self.betas = 1 - self.alphas
+<i>(omitted code)</i>
+beta_ratio = self.betas[<a href="#references">t-1</a>] / self.betas[<a href="#references">t</a>] 
+            </code></pre>
+            <p>The graph above shows self.alphas, and notice in the bf16 graph, there are multiple steps t where self.alphas[<a href="#references">t</a>] = 1, meaning that self.betas[<a href="#references">t</a>] = 0. This means that there would by a divide-by-zero error in beta_ratio, which would cause any tensors that use beta_ratio to be corrupted (such as the outputs of the DDIM sampling).</p>
+            <p>To deal with this, I set the environment variable XLA_DOWNCAST_BF16=1, which gives me access to float32 precision by casting a tensor to torch.double [<a href="#references">10</a>]. I suppose there are multiple ways to deal with this problem, but this was the first one that came to my mind, and since the noising/denoising computation is negligible compared to the forward/backward passes, I didn't worry too much about optimizing this.</p>
+            <p>Another related problem (which I figured out far later) was that normalization had to be set to fp32 for training to run smoothly. I encountered this problem when training the DM using a trained VAE with 32 groups in the GroupNorm layer (to match with the original code; I originally had eight groups in the GN layers as I started this project when my local GPU only had 2 GiB of VRAM (side note: GiB = 2^30 bytes = 1024 MiB, GB = 10^12 bytes = 1000 MB) so my models had to be scaled down a lot). Training would run smoothly for the few first thousand steps or so, but then randomly collapse. This is seen in train3a-c-56. I thought this collapse had to do something with the GN layers, so I dropped the number of groups (only in the DM, not the VAE) to eight. That's train-3a-d-58 (so no, it did not fix the problem). Reading through the original papers again, I realized that they were training their models with AdamW rather than plain Adam. I added AdamW for train3a-e-69. Finding the root problem for this collapse would be a bit trickier than I originally thought.</p>
+            <div class="scrollbox">
+                <img src="assets/unstable-norm.webp">
+            </div>
+            <p class="caption">Model collapse with GN (groups=32, groups=8) and AdamW. Something else is the problem...</p>
+            <p>I don't have this documented, but I remember looking through the activations of each layer of a collapsed model to see what may be going wrong. One, I found out that the norm of the activations kept increasing exponentially after each layer in the collapsed model. Two, the activations all had constant values. Because of the constant value activations, after the last normalization layer, the normalized activations would turn into all zeros, which would yield a loss of 1 (as the DM loss function mean((eps - DM(x, t))^2) where eps is the target noise sampled from a normal distribution, x is the noised image input, and t is the timestep is equal to 1 when DM(x, t) is always equal to 0).</p>
+            <p>This confused me. Shouldn't the GN keep the activation norms within reasonable levels? I verified that the normalization layers were in fact doing their job, so I was stumped, but I felt that the problem still laid in the normalization layers in some way. By educated guesses and trial and error, I decided to test out a possible problem. What if the mean of the activations is relatively high but the variance is relatively low? In this case, I wasn't completely sure what was going to happen, but I felt that the low precision of bf16 might've been a problem. Here's some code that roughly describes what I did:</p>
+            <pre><code>
+def norm(x): return (x - x.mean()) / x.std()
+x = torch.randn((10,), dtype=torch.bfloat16)
+x1000 = x + 1000 # norm(x1000) should equal norm(x) which is roughly equal to x 
+            </code></pre>
+            <p>But if you run the above code, you get some weird result like <i>tensor([<a href="#references">0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 3.1562, 0.0000</a>], dtype=torch.bfloat16)</i>. Aha! Precision is a problem in this case! So I tried running the GN layers in fp32...</p>
+            <pre><code>
+class StableNorm(nn.Module): # runs GroupNorm in FP32 because of bfloat16 stability issues when x is large but with small variance (i.e. x = 100)
+    def __init__(self, num_groups: int, num_channels: int):
+        super().__init__()
+        self.norm = nn.GroupNorm(num_groups, num_channels).double() # under XLA_DOWNCAST_BF16=1, double is casted down to fp32
+
+    def forward(self, x):
+        return self.norm(x.double()).float() # under XLA_DOWNCAST_BF16=1, float is casted down to bf16 
+            </code></pre>
+            <p>And the model collapse stopped! Also, performance didn't get significantly worse from this, so that's nice.</p>
+            <h3>Using TFRecordDataset causes train function to hang before training begins</h3>
+            <p>I wanted to use TFRecords for my dataset since TPUs have extremely high throughput and TFRecords are the recommended way (as opposed to an image folder, webdataset, etc.) to prevent a data bottleneck. I've worked with Tensorflow's TFRecordDataset in the past so I thought that it would work, but it just caused my training loop to hang. It might have something to mixing TF and PyTorch, but I knew that I wouldn't be able to come up with a fix for this problem myself, so I looked for other ways to load TFRecords in PyTorch. I tried looking into Torch XLA [<a href="#references">20</a>] to see if it had the solution, but it just didn't work for me. After some more looking, I found [<a href="#references">21</a>] which offered what I needed (this is unrelated, but the library has sixty closed issues and no open issues! I respect that so much.). No more hanging! I realized later that the dataset was returning the same batches across each of eight TPU workers, but that was easily fixed by initializing the dataset in each of the TPU workers with different sections of the dataset. </p>
+            <h3>Einops sometimes doesn't work</h3>
+            <p>Einops is a cool library to make tensor rearrangements and reductions simpler, and I tried using it, but it caused some errors during compilations. So I just used PyTorch's permute, reshape, and contiguous operators to do what Einops was supposed to do.</p>
+            <h3>Setting scale_factor argument when upsampling images slows training</h3>
+            <p>When I first got VAE training to work on TPU, I first noticed that step times were extremely slow after the first few steps which indicates that something was wrong in my training. The PyTorch XLA docs have some good resources [<a href="#references">22</a>] to find out where to find the causes of any slowdowns using PyTorch metrics, and when I tried running metrics on my slow code, I noticed many calls to the CPU op for upsampling. Digging through Github for a solution to this problem, I found [<a href="#references">23</a>] which solved the problem for me. All I had to do was change my upsampling code as shown below:</p>
+            <pre><code>
+def forward(self, x):
+    # BEFORE
+    #return self.conv(F.interpolate(x, scale_factor=2.0, mode='nearest'))
+
+    # AFTER
+    _B, _C, H, W = x.shape
+    return self.conv(F.interpolate(x, size=(H*2, W*2), mode='nearest'))
+        </code></pre>
+        <p>After that, there were no ops that ran on the CPU during training, which made training run at a reasonable speed.</p>
+        <h3>Not logging loss with loss.item() causes OOMs</h3>
+        <p>I don't know why my solution worked. But I knew that TPU training would be fine for a couple of epochs, then run out of memory, and then when I set loss.item() when logging metrics to W&B, the problem went away.</p>
+        <h3>More CPU memory is used up every epoch</h3>
+        <p>In my first few training runs, I noticed that my CPU memory stepped down every epoch (emphasis on epoch; the CPU memory stayed constant between different steps on the same epoch as well as would not drop if I set each epoch to have infinite steps). The only thing I could reason was that my dataloader was being refreshed every epoch, so why don't I instead reuse the same dataloader object for every epoch? Here's roughly what I did in code: </p>
+        <pre><code>
+# BEFORE
+def train_loop(self, epochs=1, steps_per_epoch=-1, save_every_n_epochs=1):
+    for epoch in range(epochs):
+        loader = pl.MpDeviceLoader(self.loader, self.device)
+        for step, (imgs, _captions) in enumerate(loader):
+            # training step
+            if step == steps_per_epoch - 1:
+                # save models, log images, etc.
+                break
+
+# AFTER
+def train_loop(self, epochs=1, steps_per_epoch=-1, save_every_n_epochs=1):
+    loader = pl.MpDeviceLoader(self.loader, self.device)
+    for step, (imgs, _captions) in enumerate(loader):
+        # training step
+        if step == steps_per_epoch - 1:
+            # save models, log images, etc.
+            epoch += 1
+            if epoch == epochs:
+                break
+            </code></pre>
+            <h3>Training from a model checkpoint is slower than training from random initialization</h3>
+            <p>During the first epoch, the VAE would train at 2.08 steps/s, but when I resumed training from a model checkpoint, the training speed dropped to 1.13 steps/s, about 54% of normal speed. So I knew that this problem laid in the loaded model, and by running the Tensorboard profiler, I found out that the optimizer step took a long time on the CPU, resulting in lots of TPU idle time. What I found out was that there was a large number of tensors being moved from the CPU to the TPU during the optimizer step, which is slow.</p>
+            <div class="scrollbox">
+                <img src="assets/slow-opt-step.webp">
+            </div>
+            <p class="caption">BEFORE FIX: Notice that the TPUs are idling and its cause: opt_step (correlating to an opt.step() call) has really big Python overhead. Something is up with the optimizer! (Note: this actually runs at around 1.45 steps/s, I don't know why this run is faster than the 1.13 steps/s run where I first saw this problem, but it highlights the same issue)</p>
+            <p>I initially tried to move all optimizer parameters to the TPU when I initialized my trainer, but this didn't work for some reason. Thankfully, the fix was pretty easy. I sent the model to the TPU, and then I made my optimizer using the TPU model's weights. Here's what the fix looks like in code:</p>
+            <pre><code>
+# OLD
+def load_models(device='cpu', lr=1e-4, ckpt_path=None):
+    vae = VAE().to(device)
+    disc = Discriminator().to(device)    
+    vae_opt = Adam(vae.parameters(), lr, (0.5, 0.9))
+    disc_opt = Adam(disc.parameters(), lr, (0.5, 0.9))
+
+    if ckpt_path is not None:
+        ckpt = torch.load(ckpt_path, map_location=torch.device('cpu'))
+        vae.load_state_dict(ckpt[<a href="#references">'vae_state_dict'</a>])
+        disc.load_state_dict(ckpt[<a href="#references">'disc_state_dict'</a>])
+        vae_opt.load_state_dict(ckpt[<a href="#references">'vae_opt_state_dict'</a>])
+        disc_opt.load_state_dict(ckpt[<a href="#references">'disc_opt_state_dict'</a>])
+    <i>(omitted code)</i>
+
+# NEW - I was thinking of finding a nicer way to write this fix in code, but I didn't care enough
+def load_models(device='cpu', lr=1e-4, ckpt_path=None):
+    vae = VAE().to(device)
+    disc = Discriminator().to(device)
+
+    if ckpt_path is None:
+        vae_opt = Adam(vae.parameters(), lr, (0.5, 0.9))
+        disc_opt = Adam(disc.parameters(), lr, (0.5, 0.9))
+    else:
+        ckpt = torch.load(ckpt_path)
+        vae.load_state_dict(ckpt[<a href="#references">'vae_state_dict'</a>])
+        disc.load_state_dict(ckpt[<a href="#references">'disc_state_dict'</a>])
+        vae = vae.to(device)
+        disc = disc.to(device)
+
+        # now the optimizers will be initialized with on-device parameters
+        vae_opt = Adam(vae.parameters(), lr, (0.5, 0.9))
+        disc_opt = Adam(disc.parameters(), lr, (0.5, 0.9))
+        vae_opt.load_state_dict(ckpt[<a href="#references">'vae_opt_state_dict'</a>])
+        disc_opt.load_state_dict(ckpt[<a href="#references">'disc_opt_state_dict'</a>])
+    <i>(omitted code)</i>
+            </code></pre>
+            <p>And when I profiled the code, here's what it looked like:</p>
+            <h3>Calling loss.item() on only the master ordinal causes training to hang</h3>
+            <p>Funny how loss.item() seems to fix one problem but causes another one. The reason this happened was that I was logging my metrics, I only called loss.item() for the master TPU ordinal (there are eight ordinals as I was training on eight TPUs). The problem is that loss.item() executes the XLA graph (AKA the TPU actually does computation after this call) [<a href="#references">10</a>], but since I only call loss.item() on one out of the eight TPU workers, seven of the TPU workers will be extremely ahead the single worker that was actually doing computation. This lack of sync between workers then causes the training loop to hang there is an operation where all TPU workers have to sync (e.g. making an optimizer step, saving models, etc.). To fix this problem in my code, I just had to change the position of one line of code when logging my metrics:</p>
+            <pre><code>
+def log_step(self,
+    log_metrics: dict, step: int,
+    epoch: int, epochs: int, steps_per_epoch: int, pbar
+):
+    log_items = {k: v.item() for k, v in log_metrics.items()} # AFTER - no training hang
+    if xm.is_master_ordinal():
+        # log_items = {k: v.item() for k, v in log_metrics.items()} # BEFORE - causes training hang
+        if self.wandb_run is not None:
+            wandb.log(log_items, step=self.global_step) 
+            </code></pre>
+            <p>While this was definitely a problem where I knew enough info beforehand to avoid, this took me a surprisingly long time to locate. This was because: </p>
+            <p>The training hang would always happen when I was saving my model, so I thought my problem had to do with saving the model. But as you can see above, the root of this model is unrelated to model saving, so I was spending a lot of time focusing on the wrong part of my code.</p>
+            <p>At this point, I had little experience debugging programs that would stop and idle. I've worked with programs that would freeze because it would run into an infinite loop, but that wouldn't make the CPUs start idling. I didn't know why a program would start doing nothing, so to me, the root of this problem could've been anywhere and thus I looked everywhere in my code for potential problems, mostly in areas with no issues. Also because of the lack of errors, I spent a lot of time on runs where I just printed out extra messages before freezing to help isolate the problem.</p>
+            <p>Since XLA takes a while to compile big models, I tried debugging with small models. However, when I did this, I couldn't reproduce the training hang. </p>
+            <p>All in all, it took me 40 runs according to W&amp;B to fix the problem, although I usually turned off W&amp;B when I encountered bugs that were hard to fix, so it probably took me even more runs to find the solution. I also went through a lot of Github issues to locate the problem, and I think [<a href="#references">24</a>] was the one that helped me the most to understand how to deal with this problem.</p>
+            <h3>The same model in different parts of training use different amounts of CPU RAM</h3>
+            <p>When training the DM, my sessions usually hit a peak between 260 (train3e-a-78) and 290 (train2_pt4-24) GB (out of 330 GB) of RAM usage but there were two runs where I somehow used up like 320 GB of the TPU session's available RAM even though I didn't change the code (train2_pt2-22/23). I don't recall fixing this problem. On the runs where I used 320 GB of RAM, all I did was continue training and saving the model. When I loaded from the saved model in a different session, it just stopped using so much RAM, which is shown in run train2_pt4-24. And if I were to completely run out of RAM on a session, I'd probably reduce the batch size, train the model for a bit, save it, then restart the session and load the saved model with the original batch size.</p>
+            <div class="scrollbox">
+                <img src="assets/low-mem.webp">
+            </div>
+            <p class="caption">Some training runs eat up more free memory than others for some reason. The only changes between these runs are the checkpoints used.</p>
+            <h2>Things That Didn't Work</h2>
+            <h3>Tokenizing captions in DataLoader</h3>
+            <p>I tried to tokenize captions in the DataLoader in an attempt to remove some overhead as data loading and model training can happen together. But whatever I tried, it never made my training any faster and it made my code uglier so I stopped trying. </p>
+            <h3>Training fast with FSDP</h3>
+            <p>The MosaicML Stable Diffusion report [<a href="#references">25</a>] described using FSDP to get a 17% speedup in training even though FSDP is meant for models far larger than Stable Diffusion. They got their speedup since they found that their optimizer step was quite slow because of all of the gradient communication over the 128 GPUs they were training across. To lower this communication, they used FSDP to shard the model optimizer states across each GPU so each GPU sends and receives a smaller amount of data. I knew that my scenario was different as I was training over eight TPUs which are essentially on the same chip (rather than connected over a relatively slow network), so gradient communication should be negligible. But I wanted to try FSDP anyway just in case there were any sizable speedups and also just to learn more about FSDP. It was a pain to set up, and even when I finally got the model training, it was really slow (about 2-3x slower than normal). I tried to find a solution to this slowness, but I couldn't, so I just stopped trying to use FSDP.</p>
+            <h3>Non-sinusoidal timestep embeddings</h3>
+            <p>I remembered reading the Keras tutorial on DDIMs [<a href="#references">18</a>] to understand the code of diffusion models and the author left a note about how sinusoidal timestep embeddings were crucial for good performance. For some context, the timestep sinusoidal embedding is calculated as: </p>
+            <pre><code>
+def sinusoidal_timestep_embedding(timestep: int): # timestep between 0-999 inclusive
+    sinusoid_emb = sinusoidal_embedding_fn(timestep) # takes in int, returns length 256 vector
+    x1 = Linear(256, 1024)(sinusoid_emb)
+    x2 = SiLU(x1)
+    x3 = Linear(1024, 1024)(x2)
+    return x3
+            </code></pre>
+            <p>Here's why I thought a vanilla embedding would work. We already know all possible timesteps (0-999 inclusive), and the sinusoidal embedding function is deterministic, so we already know all outputs of sinusoid_emb. And since the input for the first linear layer is already known, we can treat x1 as either a matrix multiplication of a learnable matrix with a constant one OR as just a learnable matrix. Same logic applies for x2 and x3, which allows us to rewrite the whole sinusoidal timestep embedding as a single learnable embedding of shape (1000, 1024).</p>
+            <p>But as I said, this didn't work. When I was training my DM with the single learnable embedding, my loss was going down, but the image quality never got good. I was starting to think more about the Keras tutorial's note on sinusoidal embeddings, as at this point I was sure that everything else about my network was correct. Eventually, I realized my method was flawed for two reasons:</p>
+            <ol>
+                <li>I was effectively reducing my batch size on the embedding by a factor of 1000. To clarify, with a batch size of 256, and assuming no repeated timesteps, I would only have gradients for 256 rows of the embedding per batch. But of the embeddings that were used in the forward pass, since each embedding was used for only one element within the batch (effective batch size of one if a gradient was received and a batch size of zero otherwise), its gradients would be very noisy. For the original sinusoidal timestep embedding, the learnable parameters rest in the linear layers which means that all of the parameters would be used for each element within the batch (effective batch size of 256).</li>
+                <li>Because the different timesteps represent slowly changing levels of noise strength in the input image, it makes sense that rows of timestep embedding that are spatially close to each other (e.g. row 10 and row 11) should have similar element contents (i.e. the vector distance between the rows should be close to 0) since spatially close rows represent similar levels of noise strength. A vanilla learnable embedding does not have this inductive bias whereas the sinusoidal embedding does, which means that training should be much easier with the sinusoidal embedding.</li>
+            </ol>
+            <div class="scrollbox">
+                <img src="assets/vanilla-sinusoidal-emb.webp">
+            </div>
+            <p class="caption">The k-th row on both images represents the activation values of each embedding for t=k. Notice how the different rows in the vanilla embedding are completely independent of each other and how this is not the case for the sinusoidal embedding.</p>
+            <p>Below shows a comparison of the DM outputs where the loss is similar and the main difference is the embedding. Note that I said "similar loss" and not "similar training time" since the training run with sinusoidal embeddings (~70k steps to mse=0.267) trained more than twice as quick as the run with vanilla embeddings (~164k steps to mse=0.267):</p>
+            <h3>Using vanilla embeddings</h3>
+            <div class="scrollbox">
+                <img src="assets/vanilla-outputs.webp">
+            </div>
+            <p class="caption">All the samples from the vanilla embedding run look like paint splotches.</h3>
+            <h3>Using sinusoidal embeddings</h3>
+            <div class="scrollbox">
+                <img src="assets/sinusoidal-outputs.webp">
+            </div>
+            <p class="caption">The house and car samples look vaguely like houses and cars, a clear win for the sinusoidal embeddings.</h3>
+            <h2>Training Progress</h2>
+            <h3>VAE</h3>
+            <div class="scrollbox">
+                <img src="assets/vae-loss-curve.webp">
+            </div>
+            <h3>DM</h3>
+            <div class="scrollbox">
+                <img src="assets/dm-loss-curve-full.webp">
+            </div>
+            <p class="caption">Note: this is a log-log plot</p>
+            <div class="scrollbox">
+                <img src="assets/dm-loss-curve-zoom.webp">
+            </div>
+            <p class="caption">The above plot but ignoring the high-loss areas (after 500 steps, clipping the moment around 3k steps where the loss temporarily spiked). Loss steadily went down at 90k steps which means I could've gotten better results by training longer, but I stopped because I got bored of waiting.</p>
+            <h2>Conclusion</h2>
+            <p>And that's it! Even though I was replicating an already open-source project, I learned a lot from doing this. Some takeaways:</p>
+            <ul>
+                <li>Read the tutorials carefully. Many of the issues I faced were things that that I glossed over in tutorials.</li>
+                <li>Make your debug runs as small and focused as possible. I used up so much time debugging as I would spend 30 minutes of waiting, get an error message, change one or two line of code, and repeat. For example, if you can replicate the issue with a smaller model, use a smaller model. If you can replicate the issue using only one device rather than eight, use only one device. You get the idea.</li>
+                <li>Document your work. It's good to do this in case you encounter the same problem in the future so you can refer to how you fixed the problem. I documented my work by writing descriptions on each W&amp;B run of what I changed and of any new issues that happened in the run. I also saved my training code and uploaded it on W&amp;B for every run. Making this report would've been impossible if I didn't do both of these. </li>
+                <li>Use built-in debugging tools and profilers.</li>
+            </ul>
+            <h2 id="references">References</h2>
+            <ol>
+                <li><a href="https://cloud.google.com/tpu/docs/v3">TPUv3 Architecture </a></li>
+                <li><a href="https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-p100/pdf/nvidia-tesla-p100-datasheet.pdf">P100 Datasheet </a></li>
+                <li><a href="https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet.pdf">T4 Datasheet </a></li>
+                <li><a href="https://arxiv.org/pdf/2302.05442.pdf">Scaling Vision Transformers to 22 Billion Parameters </a></li>
+                <li><a href="https://arxiv.org/pdf/2204.02311.pdf">PaLM: Scaling Language Modeling with Pathways </a></li>
+                <li><a href="https://github.com/Dao-AILab/flash-attention">FlashAttention GitHub </a></li>
+                <li><a href="https://datascience.stackexchange.com/questions/49522/what-is-gelu-activation">What is GELU? </a></li>
+                <li><a href="https://arxiv.org/pdf/2002.05202.pdf">GLU Variants Improve Transformer </a></li>
+                <li><a href="https://www.tensorflow.org/guide/mixed_precision">TensorFlow Mixed Precision Guide </a></li>
+                <li><a href="https://pytorch.org/xla/release/2.0/index.html">PyTorch XLA Guide </a></li>
+                <li><a href="https://cloud.google.com/tpu/docs/tensorflow-performance-guide">TensorFlow TPU Performance Guide </a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Locality_of_reference">Locality of Reference Wikipedia Article </a></li>
+                <li><a href=https://youtube.com/watch?v=G92BCtfTwOE">Cache-Blocking/Tiling Matrix Multiplication Tutoria</a></li>
+                <li><a href="https://youtube.com/watch?v=247cXLkYt2M">Memory, Cache Locality, and Why Arrays Are Fast </a></li>
+                <li><a href="https://arxiv.org/pdf/1706.03762v5.pdf">Attention Is All You Need </a></li>
+                <li><a href="https://github.com/CompVis/latent-diffusion/blob/main/ldm/modules/diffusionmodules/model.py">LDM Github - diffusionmodules/model.py </a></li>
+                <li><a href="https://github.com/lucidrains/x-transformers">x-transformers Github - README.md </a></li>
+                <li><a href="https://keras.io/examples/generative/ddim/">Keras DDIM Tutorial </a></li>
+                <li><a href="https://arxiv.org/pdf/2307.01952.pdf">SDXL Technical Report </a></li>
+                <li><a href="https://pytorch.org/xla/release/2.0/_modules/torch_xla/utils/tf_record_reader.html">Torch XLA TFRecordReader </a></li>
+                <li><a href="https://github.com/vahidk/tfrecord">Vahid Kazemi's TFRecord Library </a></li>
+                <li><a href="https://cloud.google.com/blog/topics/developers-practitioners/pytorchxla-performance-debugging-tpu-vm-part-1">PyTorch/XLA: Performance debugging on Cloud TPU VM: Part I </a></li>
+                <li><a href="https://github.com/pytorch/xla/issues/2588">CPU Upsampling when scale_factor != 1.0 </a></li>
+                <li><a href="https://github.com/pytorch/xla/issues/2712">Training hang in PyTorch XLA </a></li>
+                <li><a href="https://www.mosaicml.com/blog/diffusion">MosaicML Stable Diffusion Report </a></li>
+            </ol>
+            <h2>Changelog</h2>
+            <ul>
+                <li>August 27, 2023: Article made</li>
+                <li>January 5, 2024: Added note about xla backend names changing for torch.compile</li>
+                <li>September 2, 2024: Added cover image, reorder paragraphs from optimization logs to make more sense, published this article to my site</li>
+            </ul>
+        </div>
+    </body>
+</html>

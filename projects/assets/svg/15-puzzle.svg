@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:svg="http://www.w3.org/2000/svg"  xmlns="http://www.w3.org/2000/svg" 
+     version="1.1"  width="420px"  height="420px" viewBox="-10,-10,420,420">
+	<polygon style ="fill:none; stroke:#000000; stroke-width:5;" 
+	         points="0,0 400,0 400,100 0,100 0,200 400,200 400,300 0,300 0,400 400,400 400,0 300,0 300,400 200,400 200,0 100,0 100,400 0,400" />
+	<text style="fill :#000000; stroke : none; font-family :Arial, sans-serif; font-size :65px; font-weight :bold; text-anchor :middle;"><!--
+	 --><tspan x="50"  y="70">12</tspan><tspan x="150"  y="70">1</tspan><tspan  x="250"  y="70">2</tspan><tspan  x="350"  y="70">15</tspan><!--
+	 --><tspan x="50" y="170">11</tspan><tspan x="150" y="170">6</tspan><tspan  x="250" y="170">5</tspan><tspan  x="350" y="170">8</tspan><!--
+	 --><tspan x="50" y="270">7</tspan><tspan  x="150" y="270">10</tspan><tspan x="250" y="270">9</tspan><tspan  x="350" y="270">4</tspan><!--
+	 --><tspan x="50" y="370"></tspan><tspan   x="150" y="370">13</tspan><tspan x="250" y="370">14</tspan><tspan x="350" y="370">3</tspan><!--
+     --></text>
+<!--
+12	1	2	15
+11	6	5	8
+7	10	9	4
+	13	14	3
+-->
+</svg>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>latentCall145</title>
+        <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
+        <link rel="stylesheet" href="../style.css">
+        <style>
+            .project {
+                background-color: #fff;
+                border-radius: 5px;
+                padding: 20px;
+                margin-bottom: 20px;
+                overflow: auto;
+            }
+            .project h3 {
+                margin-top: 0;
+            }
+            .tool {
+                height: 64px;
+                margin-left: 32px;
+                margin-right: 32px;
+            }
+            .motif {
+                height: 128px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="navbar">
+            <a href="../index.html"><b>latentCall145</b></a>
+            <a href="index.html">Projects</a>
+            <a href="../random/index.html">Random</a>
+        </div>
+        <div class="container">
+            <h2>My Projects</h2>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/gn.svg" class="motif">
+                </div>
+                <details>
+                    <summary>GPU-Optimized Group Normalization (<a href="https://github.com/latentCall145/channels-last-groupnorm">code</a>)</summary>
+                    <ul>
+                        <li>Yielded up to 2x speedup over PyTorch’s group normalization implementation by rewriting CUDA kernels, tuning kernel
+                            configurations and memory access schemes, and profiling kernels using Nvidia Nsight Compute
+                        </li>
+                        <li>Sped up end-to-end CNN training by 35% and reduced memory usage by 30% by leveraging faster memory formats (NHWC) and fusing normalization with activation functions </li>
+                        <li>Open-sourced code as well as a <a href="https://drive.google.com/file/d/1c-FvwCT6FWw5eYI-MqyNc311mrnKV6un/view?usp=sharing">document</a> deriving the forward/backward pass</li>
+                        <li>Tools used: CUDA, C++, Nvidia Nsight Compute, PyTorch</li>
+                    </ul>
+                    <img src="assets/svg/cuda.svg" class="tool">
+                    <img src="assets/svg/c++.svg" class="tool">
+                    <img src="assets/svg/ncu.svg" class="tool">
+                    <img src="assets/svg/pytorch.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/128/diffusion.webp" class="motif">
+                </div>
+                <details>
+                    <summary>Generative Text-to-Image AI From Scratch (<a href="https://github.com/latentCall145/latent-diffusion">code</a>, <a href="../ldm-report/index.html">report</a>)</summary>
+                    <ul>
+                        <li>Reimplemented and trained a generative text-to-image denoising diffusion probabilistic model from scratch on an 800 GB subset of the laion2B-en image-caption dataset</li>
+                        <li>Increased model training efficiency as measured by hardware utilization on a Google TPU-v3-8 AI chip from 23.4% to 68.0% using PyTorch/XLA and Tensorboard</li>
+                        <li>Tracked model experiments, training progress, and wrote reports to document my work using Weights &amp; Biases</li>
+                        <li>The diffusion model is a successor to another generative image model I've made from scratch (<a href="https://github.com/latentCall145/StyleGAN-ADA">StyleGAN2-ADA</a>)</li>
+                        <li>Tools Used: Python, PyTorch/XLA, Tensorboard, Weights &amp; Biases</li>
+                    </ul>
+                    <img src="assets/svg/python.svg" class="tool">
+                    <img src="assets/svg/pytorch.svg" class="tool">
+                    <img src="assets/svg/xla.svg" class="tool">
+                    <img src="assets/svg/tensorboard.svg" class="tool">
+                    <img src="assets/svg/wab.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/128/flux.webp" class="motif">
+                </div>
+                <p>generated with FLUX.1[schnell]; prompt: <i>ornate ink caligraphy spelling out "FLUX.1 512 MB"</i></p>
+                <details>
+                    <summary>Large Model Inference on Consumer-Grade Hardware (<a href="https://youtu.be/SbFm2-2_9Ak">video</a>)</summary>
+                    <ul>
+                        <li>Reduced memory usage of 12 billion parameter text-to-image model (FLUX.1) inference by 66x over naive methods using Huggingface Diffusers (from ~33 GB VRAM down to 512 MB to generate a 1024x1024 image)</li>
+                        <li>Halved memory usage and sped up inference by 40% over publicly available Diffusers codebase by patching source code to use low-precision CuBLAS matrix multiplication algorithms, operator fusion, and activation freeing</li>
+                        <li>Reduced inference time on NVIDIA Volta GPUs by <a href="https://github.com/huggingface/diffusers/issues/9095">4.4x</a> by merging a <a href="https://github.com/huggingface/diffusers/pull/9097">pull request</a> into Huggingface Diffusers which fixed FLUX.1 numerical overflow with float16 inputs</li>
+                        <li>Eliminated any latency or memory consumption when quantizing models in Huggingface Quanto by fixing a bug regarding needless weight initialization in quantized modules (<a href="https://github.com/huggingface/optimum-quanto/pull/297">bug fix</a> merged into main codebase)</li>
+                        <li>note: the video says I only got FLUX.1 working under 1 GB but that included ~350 MB VRAM used by the system, model inference itself took only 512 MB</li>
+                        <li>Tools used: Huggingface Diffusers, Nvidia Nsight Systems, PyTorch, Python</li>
+                    </ul>
+                    <img src="assets/svg/diffusers.svg" class="tool">
+                    <img src="assets/svg/nsys.svg" class="tool">
+                    <img src="assets/svg/pytorch.svg" class="tool">
+                    <img src="assets/svg/python.svg" class="tool">
+                    <br>
+                    <iframe src="https://www.youtube.com/embed/SbFm2-2_9Ak"></iframe>
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/cxl.svg" class="motif">
+                </div>
+                <details>
+                    <summary>CoxLines: Rowing Data Collection + Analysis Tool</summary>
+                    <ul>
+                        <li>Developed iOS app via Swift to collect GPS, accelerometer, gyroscope, and microphone data from a rowing shell</li>
+                        <li>Designed a GUI using PyQt, NumPy, and Pandas to visualize boat position, speed, and steering effectiveness, which is also synced with microphone recordings</li>
+                        <li>Collected 30+ hours of rowing data (and 300+ km of rowing/running data) using CoxLines and analyzed data using GUI and Matplotlib to identify areas of technical improvement within varsity boats</li>
+                        <li>Tools Used: NumPy, PyQt, Pandas, Matplotlib, Swift</li>
+                    </ul>
+                    <img src="assets/svg/numpy.svg" class="tool">
+                    <img src="assets/svg/pyqt.svg" class="tool">
+                    <img src="assets/svg/pandas.svg" class="tool">
+                    <img src="assets/svg/matplotlib.svg" class="tool">
+                    <img src="assets/svg/swift.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/128/sr.webp" class="motif">
+                </div>
+                <details>
+                    <summary>AI Image/Video Upscaling (<a href="https://github.com/latentCall145/esrGAN">model code</a>, <a href="https://github.com/latentCall145/srGANWeb">web app code</a>)</summary>
+                    <ul>
+                        <li>Tools Used: PyTorch, TensorFlow, Keras, Flask, HTML, CSS</li>
+                        <li>Implemented generative adversarial networks (SRGAN, ESRGAN, Real-ESRGAN, BasicVSR) for image and video upscaling using TensorFlow, Keras, and PyTorch from scratch</li>
+                        <li>Designed a web app via Flask, HTML, and CSS to upload and upscale images</li>
+                    </ul>
+                    <img src="assets/svg/pytorch.svg" class="tool">
+                    <img src="assets/svg/tensorflow.svg" class="tool">
+                    <img src="assets/svg/keras.svg" class="tool">
+                    <img src="assets/svg/flask.svg" class="tool">
+                    <img src="assets/svg/html.svg" class="tool">
+                    <img src="assets/svg/css.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/128/mnist.webp" class="motif">
+                </div>
+                <details>
+                    <summary>Deep Learning in C (<a href="https://github.com/latentCall145/nnic2">code</a>)</summary>
+                    <ul>
+                        <li>Trained a neural network (an MLP to be specific) to recognize images from the MNIST numbers dataset entirely in C, covering file processing, forward passes, backpropagation, and model optimization</li>
+                        <li>Implemented a BLAS matrix multiplication algorithm reaching 80% performance of OpenBLAS (fastest open-source implementation)</li>
+                        <li>Tools Used: C</li>
+                    </ul>
+                    <img src="assets/svg/c.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/nn.svg" class="motif">
+                </div>
+                <details>
+                    <summary>Neural Network Framework (<a href="https://github.com/latentCall145/nnfs/tree/main">code</a>)</summary>
+                    <ul>
+                        <li>Created a basic neural network framework which supports construction, inference, and training of MLPs and CNNs</li>
+                        <li>Layers: linear, 2D convolution (dense and depthwise), nearest-neighbor upsampling, max/average pooling, flatten, ReLU, leaky ReLU, sigmoid, softmax</li>
+                        <li>Losses: L2, cross-entropy</li>
+                        <li>Optimizers: SGD (with momentum), Adam</li>
+                        <li>Tools Used: NumPy, Python</li>
+                    </ul>
+                    <img src="assets/svg/numpy.svg" class="tool">
+                    <img src="assets/svg/python.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/othello.svg" class="motif">
+                </div>
+                <details>
+                    <summary>Othello Engine</summary>
+                    <ul>
+                        <li>Designed a Python Othello engine using minimax, alpha-beta pruning, and evolutionary algorithms</li>
+                        <li>Boosted engine end-game performance by using linear regression of board state evaluations trained on 10,000+ Othello games of the engine playing against itself</li>
+                        <li>Play <a href=https://othello.tjhsst.edu/play/>here</a>: (my AI is 2023tnguyen; I did not make the website)</li>
+                        <li>Tools Used: Python</li>
+                    </ul>
+                    <img src="assets/svg/python.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/15-puzzle.svg" class="motif">
+                </div>
+                <details>
+                    <summary>15-Puzzle Solver (<a href="https://github.com/latentCall145/DeepCubeA">code</a>)</summary>
+                    <ul>
+                        <li>Boosted 15-puzzle solving speed 9x over baseline using A* and additive pattern database (PDB) heuristics in Python (note: this project was an extension of a class assignment; the baseline was a canonical solution which also used A* with an improved Manhattan distance heuristic)</li>
+                        <li>Trained reinforcement learning neural network heuristic (DeepCubeA) using PyTorch for a 1.25-14x speedup over PDB solver</li>
+                        <li>Tools Used: Python, PyTorch</li>
+                    </ul>
+                    <img src="assets/svg/python.svg" class="tool">
+                    <img src="assets/svg/pytorch.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/cluster.svg" class="motif">
+                </div>
+                <details>
+                    <summary>Image Compression via Clustering</summary>
+                    <ul>
+                        <li>Tools Used: NumPy, Python</li>
+                        <li>Used K-Means clustering on image pixel values to determine the best colors to represent an image using NumPy</li>
+                        <li>Sped up Scikit-learn’s Gaussian mixture model implementation by 7x for the same task by modifying model update equations to avoid recomputation of repeated pixel values</li>
+                        <li>Tools Used: NumPy, Python</li>
+                    </ul>
+                    <img src="assets/svg/numpy.svg" class="tool">
+                    <img src="assets/svg/python.svg" class="tool">
+                </details>
+            </div>
+            <div class="project">
+                <div class="scrollbox">
+                    <img src="assets/svg/blackjack.svg" class="motif">
+                </div>
+                <details>
+                    <summary>Blackjack AI</summary>
+                    <ul>
+                        <li>Simulated 25M+ blackjack games with Python multiprocessing to generate win probabilities of blackjack states given player/dealer hands and deck card counts</li>
+                        <li>Used expectiminimax and the Kelly criterion to determine optimal blackjack and betting policy</li>
+                        <li>Outperforms basic betting strategies 54% of the time and yields an average return of 0.1% per round based on a simulation of 10M 5-game rounds with one deck</li>
+                        <li>Tools Used: Python</li>
+                    </ul>
+                    <img src="assets/svg/python.svg" class="tool">
+                </details>
+            </div>
+        </div>
+    </body>
+</html>
