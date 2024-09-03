@@ -21,28 +21,20 @@
                 padding-left: 10px;
                 padding-right: 10px;
             }
-            .caption {
-                color: #6c7a89;
-                font-style: italic;
-                padding: 0px;
-                margin: 0px;
-                margin-bottom: 40px;
-            }
         </style>
     </head>
     <body>
         <div class="navbar">
             <a href="../index.html"><b>latentCall145</b></a>
             <a href="../projects/index.html">Projects</a>
+            <a href="../writings/index.html">Writings</a>
             <a href="../random/index.html">Random</a>
         </div>
         <div class="container">
-            <p style="color:red;"><i>The original version of this report can be found at Weights &amp; Biases (the W&amp;B version also includes some interactive graphs); <a href="https://wandb.ai/tiewa_enguin/tpu_ldm_ddpm_v2/reports/Attempting-to-Train-Stable-Diffusion-From-Scratch-For-Free--Vmlldzo1MTYxNjU0">link</a></i></p>
+            <p class="warning">The original version of this report can be found at Weights &amp; Biases (the W&amp;B version also includes some interactive graphs); <a href="https://wandb.ai/tiewa_enguin/tpu_ldm_ddpm_v2/reports/Attempting-to-Train-Stable-Diffusion-From-Scratch-For-Free--Vmlldzo1MTYxNjU0">link</a></p>
             <h1>Attempting to Train Stable Diffusion From Scratch For Free</h1>
-            <i>
-            <p>A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources</p>
-            <p>Published by latentCall145 on August 17, 2023 (see bottom of page for changelog)</p>
-            </i>
+            <p class="caption">A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources<br>
+            Written by latentCall145 on August 17, 2023 and published to this site on September 2, 2024 (<a href="#changelog">changelog</a>)</p>
             <div class="scrollbox">
                 <img src="assets/preds-90112.webp">
             </div>
@@ -208,36 +200,38 @@ def faster_swiglu(x): # AFTER
                 <li>No biases in transformer blocks</li>
             </ul>
             <h4>Macro-optimizations</h4>
-            <table>
-                <tr>
-                    <th>Optimization description</th>
-                    <th>FLOPs utilization (%)</th>
-                    <th>Idle time (%)</th>
-                    <th>FLOPs utilization increase over previous optimization</th>
-                    <th>FLOPs utilization increase over baseline</th>
-                </tr>
-                <tr>
-                    <td>baseline (small models, per-device batch size=32)</td>
-                    <td>23.4</td>
-                    <td>61.1</td>
-                    <td>1.00</td>
-                    <td>1.00</td>
-                </tr>
-                <tr>
-                    <td>TPU-friendly models + per-device batch size=128</td>
-                    <td>55.3</td>
-                    <td>19.5</td>
-                    <td>2.36</td>
-                    <td>2.36</td>
-                </tr>
-                <tr>
-                    <td>Compile VAE and CLIP embedder with torch.compile</td>
-                    <td>68.4</td>
-                    <td>6.2</td>
-                    <td>1.24</td>
-                    <td>2.92</td>
-                </tr>
-            </table>
+            <div class="scrollbox">
+                <table>
+                    <tr>
+                        <th>Optimization description</th>
+                        <th>FLOPs utilization (%)</th>
+                        <th>Idle time (%)</th>
+                        <th>FLOPs utilization increase over previous optimization</th>
+                        <th>FLOPs utilization increase over baseline</th>
+                    </tr>
+                    <tr>
+                        <td>baseline (small models, per-device batch size=32)</td>
+                        <td>23.4</td>
+                        <td>61.1</td>
+                        <td>1.00</td>
+                        <td>1.00</td>
+                    </tr>
+                    <tr>
+                        <td>TPU-friendly models + per-device batch size=128</td>
+                        <td>55.3</td>
+                        <td>19.5</td>
+                        <td>2.36</td>
+                        <td>2.36</td>
+                    </tr>
+                    <tr>
+                        <td>Compile VAE and CLIP embedder with torch.compile</td>
+                        <td>68.4</td>
+                        <td>6.2</td>
+                        <td>1.24</td>
+                        <td>2.92</td>
+                    </tr>
+                </table>
+            </div>
 
             <h2>Strange Bugs</h2>
             <p>Note: These are also ordered from when I found them.</p>
@@ -251,9 +245,9 @@ def faster_swiglu(x): # AFTER
             <pre><code>
 self.betas = 1 - self.alphas
 <i>(omitted code)</i>
-beta_ratio = self.betas[<a href="#references">t-1</a>] / self.betas[<a href="#references">t</a>] 
+beta_ratio = self.betas[t-1] / self.betas[t] 
             </code></pre>
-            <p>The graph above shows self.alphas, and notice in the bf16 graph, there are multiple steps t where self.alphas[<a href="#references">t</a>] = 1, meaning that self.betas[<a href="#references">t</a>] = 0. This means that there would by a divide-by-zero error in beta_ratio, which would cause any tensors that use beta_ratio to be corrupted (such as the outputs of the DDIM sampling).</p>
+            <p>The graph above shows self.alphas, and notice in the bf16 graph, there are multiple steps t where self.alphas[t] = 1, meaning that self.betas[t] = 0. This means that there would by a divide-by-zero error in beta_ratio, which would cause any tensors that use beta_ratio to be corrupted (such as the outputs of the DDIM sampling).</p>
             <p>To deal with this, I set the environment variable XLA_DOWNCAST_BF16=1, which gives me access to float32 precision by casting a tensor to torch.double [<a href="#references">10</a>]. I suppose there are multiple ways to deal with this problem, but this was the first one that came to my mind, and since the noising/denoising computation is negligible compared to the forward/backward passes, I didn't worry too much about optimizing this.</p>
             <p>Another related problem (which I figured out far later) was that normalization had to be set to fp32 for training to run smoothly. I encountered this problem when training the DM using a trained VAE with 32 groups in the GroupNorm layer (to match with the original code; I originally had eight groups in the GN layers as I started this project when my local GPU only had 2 GiB of VRAM (side note: GiB = 2^30 bytes = 1024 MiB, GB = 10^12 bytes = 1000 MB) so my models had to be scaled down a lot). Training would run smoothly for the few first thousand steps or so, but then randomly collapse. This is seen in train3a-c-56. I thought this collapse had to do something with the GN layers, so I dropped the number of groups (only in the DM, not the VAE) to eight. That's train-3a-d-58 (so no, it did not fix the problem). Reading through the original papers again, I realized that they were training their models with AdamW rather than plain Adam. I added AdamW for train3a-e-69. Finding the root problem for this collapse would be a bit trickier than I originally thought.</p>
             <div class="scrollbox">
@@ -267,7 +261,7 @@ def norm(x): return (x - x.mean()) / x.std()
 x = torch.randn((10,), dtype=torch.bfloat16)
 x1000 = x + 1000 # norm(x1000) should equal norm(x) which is roughly equal to x 
             </code></pre>
-            <p>But if you run the above code, you get some weird result like <i>tensor([<a href="#references">0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 3.1562, 0.0000</a>], dtype=torch.bfloat16)</i>. Aha! Precision is a problem in this case! So I tried running the GN layers in fp32...</p>
+            <p>But if you run the above code, you get some weird result like <i>tensor([0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 3.1562, 0.0000], dtype=torch.bfloat16)</i>. Aha! Precision is a problem in this case! So I tried running the GN layers in fp32...</p>
             <pre><code>
 class StableNorm(nn.Module): # runs GroupNorm in FP32 because of bfloat16 stability issues when x is large but with small variance (i.e. x = 100)
     def __init__(self, num_groups: int, num_channels: int):
@@ -337,10 +331,10 @@ def load_models(device='cpu', lr=1e-4, ckpt_path=None):
 
     if ckpt_path is not None:
         ckpt = torch.load(ckpt_path, map_location=torch.device('cpu'))
-        vae.load_state_dict(ckpt[<a href="#references">'vae_state_dict'</a>])
-        disc.load_state_dict(ckpt[<a href="#references">'disc_state_dict'</a>])
-        vae_opt.load_state_dict(ckpt[<a href="#references">'vae_opt_state_dict'</a>])
-        disc_opt.load_state_dict(ckpt[<a href="#references">'disc_opt_state_dict'</a>])
+        vae.load_state_dict(ckpt['vae_state_dict'])
+        disc.load_state_dict(ckpt['disc_state_dict'])
+        vae_opt.load_state_dict(ckpt['vae_opt_state_dict'])
+        disc_opt.load_state_dict(ckpt['disc_opt_state_dict'])
     <i>(omitted code)</i>
 
 # NEW - I was thinking of finding a nicer way to write this fix in code, but I didn't care enough
@@ -353,16 +347,16 @@ def load_models(device='cpu', lr=1e-4, ckpt_path=None):
         disc_opt = Adam(disc.parameters(), lr, (0.5, 0.9))
     else:
         ckpt = torch.load(ckpt_path)
-        vae.load_state_dict(ckpt[<a href="#references">'vae_state_dict'</a>])
-        disc.load_state_dict(ckpt[<a href="#references">'disc_state_dict'</a>])
+        vae.load_state_dict(ckpt['vae_state_dict'])
+        disc.load_state_dict(ckpt['disc_state_dict'])
         vae = vae.to(device)
         disc = disc.to(device)
 
         # now the optimizers will be initialized with on-device parameters
         vae_opt = Adam(vae.parameters(), lr, (0.5, 0.9))
         disc_opt = Adam(disc.parameters(), lr, (0.5, 0.9))
-        vae_opt.load_state_dict(ckpt[<a href="#references">'vae_opt_state_dict'</a>])
-        disc_opt.load_state_dict(ckpt[<a href="#references">'disc_opt_state_dict'</a>])
+        vae_opt.load_state_dict(ckpt['vae_opt_state_dict'])
+        disc_opt.load_state_dict(ckpt['disc_opt_state_dict'])
     <i>(omitted code)</i>
             </code></pre>
             <p>And when I profiled the code, here's what it looked like:</p>
@@ -476,11 +470,12 @@ def sinusoidal_timestep_embedding(timestep: int): # timestep between 0-999 inclu
                 <li><a href="https://github.com/pytorch/xla/issues/2712">Training hang in PyTorch XLA </a></li>
                 <li><a href="https://www.mosaicml.com/blog/diffusion">MosaicML Stable Diffusion Report </a></li>
             </ol>
-            <h2>Changelog</h2>
+            <h2 id="changelog">Changelog</h2>
             <ul>
                 <li>August 27, 2023: Article made</li>
                 <li>January 5, 2024: Added note about xla backend names changing for torch.compile</li>
                 <li>September 2, 2024: Added cover image, reorder paragraphs from optimization logs to make more sense, published this article to my site</li>
+                <li>September 3, 2024: Minor formatting changes</li>
             </ul>
         </div>
     </body>

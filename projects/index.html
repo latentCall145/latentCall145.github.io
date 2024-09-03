@@ -30,7 +30,8 @@
     <body>
         <div class="navbar">
             <a href="../index.html"><b>latentCall145</b></a>
-            <a href="index.html">Projects</a>
+            <a href="../projects/index.html">Projects</a>
+            <a href="../writings/index.html">Writings</a>
             <a href="../random/index.html">Random</a>
         </div>
         <div class="container">
@@ -40,13 +41,13 @@
                     <img src="assets/svg/gn.svg" class="motif">
                 </div>
                 <details>
-                    <summary>GPU-Optimized Group Normalization (<a href="https://github.com/latentCall145/channels-last-groupnorm">code</a>)</summary>
+                    <summary>GPU-Optimized Group Normalization (<a href="https://github.com/latentCall145/channels-last-groupnorm">code</a>, <a href="../gn-chronicles/index.html">fwd/bwd math</a>)</summary>
                     <ul>
                         <li>Yielded up to 2x speedup over PyTorch’s group normalization implementation by rewriting CUDA kernels, tuning kernel
                             configurations and memory access schemes, and profiling kernels using Nvidia Nsight Compute
                         </li>
                         <li>Sped up end-to-end CNN training by 35% and reduced memory usage by 30% by leveraging faster memory formats (NHWC) and fusing normalization with activation functions </li>
-                        <li>Open-sourced code as well as a <a href="https://drive.google.com/file/d/1c-FvwCT6FWw5eYI-MqyNc311mrnKV6un/view?usp=sharing">document</a> deriving the forward/backward pass</li>
+                        <li>Open-sourced code as well as a <a href="gn-chronicles/index.html">document</a> deriving the forward/backward pass</li>
                         <li>Tools used: CUDA, C++, Nvidia Nsight Compute, PyTorch</li>
                     </ul>
                     <img src="assets/svg/cuda.svg" class="tool">

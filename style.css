@@ -22,7 +22,8 @@ body {
     display: block;
     color: white;
     text-align: center;
-    padding: 14px 16px;
+    font-size: 15px;
+    padding: 8px 16px;
     text-decoration: none;
     transition: background-color 0.3s;
 }
@@ -32,6 +33,19 @@ body {
 }
 
 .scrollbox { /* scrollable container to put images inside */
-    overflow: auto;
+    overflow-y: hidden;
+    overflow-x: auto;
     text-align: center;
+}
+
+.caption {
+    color: #464c4e;
+    font-style: italic;
+    padding: 0px;
+    margin: 0px;
+    margin-bottom: 40px;
+}
+.warning {
+    color: red;
+    font-style: italic;
 }
