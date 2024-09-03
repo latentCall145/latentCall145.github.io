@@ -3,24 +3,31 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>latentCall145</title>
+        <title>latentCall145's Writing</title>
         <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
         <link rel="stylesheet" href="../style.css">
+        <meta name="description" content="latentCall145's site">
+        <meta name="keywords" content="latentCall145, AI, ML, programming, blog">
         <style>
             .article {
                 background-color: #fff;
                 border-radius: 5px;
-                padding: 20px;
                 margin-bottom: 20px;
+                padding: 0px;
                 overflow: auto;
             }
             .article img {
                 float:left;
-                margin: 40px;
-                height: 100px;
+                margin-top: 25px;
+                margin-left: 5%;
+                margin-right: 5%;
+                margin-bottom: 25px;
+                max-height: 100px;
+                max-width: 20%;
             }
-            .article h1, h2, h3, p {
+            .article p, .article h3 {
                 text-align:left;
+                padding-left: 20px;
             }
         </style>
     </head>
@@ -35,18 +42,20 @@
             <h2>Writings</h2>
             <a href="../gn-chronicles/index.html" style="text-decoration:none; color:black;">
                 <div class="article">
-                    <img src="../projects/assets/svg/gn.svg">
+                    <img src="../projects/assets/svg/gn.svg" alt="GN reduction">
                     <h3>Group Norm Chronicles</h3>
-                    <p class="caption">A writeup of the math behind group normalization's forward and backward pass with emphasis on efficient backward pass calculation<br>
+                    <p class="caption">A writeup of the math behind group normalization's forward and backward pass with emphasis on efficient backward pass calculation
+                    <br>
                     September 3, 2024</p>
                 </div>
 
             <a href="../ldm-report/index.html" style="text-decoration:none; color:black;">
                 <div class="article">
-                    <img src="../ldm-report/assets/preds-90112.webp">
+                    <img src="../ldm-report/assets/preds-90112.webp" alt="samples @ 90k training steps">
 
                     <h3>Attempting to Train Stable Diffusion From Scratch For Free</h3>
-                    <p class="caption">A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources<br>
+                    <p class="caption">A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources
+                    <br>
                     September 2, 2024</p>
                 </div>
             </a>

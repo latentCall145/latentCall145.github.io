@@ -3,12 +3,13 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>latentCall145</title>
+        <title>GN Report</title>
         <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
+        <meta name="description" content="Group Normalization Math">
+        <meta name="keywords" content="latentCall145, AI, ML, programming, group normalization, groupnorm, math, channels-last">
         <script>
             MathJax = {
                 tex: {
-                    displayMath: [['$$', '$$'], ['\\[', '\\]']],
                     tags: 'ams'
                 }
             };
@@ -16,6 +17,9 @@
         <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <link rel="stylesheet" href="../style.css">
         <style>
+            .navbar {
+                z-index: 1; /* MathJax text goes over header if this isn't specified */
+            }
             .container {
                 background-color: #ffffff;
             }
@@ -48,7 +52,7 @@
 
             <h2>Forward Pass</h2>
             <div class="scrollbox">
-                <img src="assets/gn.svg">
+                <img src="assets/gn.svg" alt="GN reduction">
             </div>
             <p class="caption">Diagram showing values in image (shaded in blue) that are reduced to one mean/variance during normalization. i drew this cube so many times while coding</p>
 

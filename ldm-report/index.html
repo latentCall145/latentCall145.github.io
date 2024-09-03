@@ -3,9 +3,11 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>latentCall145</title>
+        <title>LDM Report</title>
         <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
         <link rel="stylesheet" href="../style.css">
+        <meta name="description" content="Attempting to Train Stable Diffusion From Scratch For Free">
+        <meta name="keywords" content="latentCall145, AI, ML, programming, Stable Diffusion, diffusion, latent diffusion">
         <style>
             .container {
                 background-color: #ffffff;
@@ -36,7 +38,7 @@
             <p class="caption">A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources<br>
             Written by latentCall145 on August 17, 2023 and published to this site on September 2, 2024 (<a href="#changelog">changelog</a>)</p>
             <div class="scrollbox">
-                <img src="assets/preds-90112.webp">
+                <img src="assets/preds-90112.webp" alt="samples @ 90k training steps">
             </div>
             <p class="caption">Non-cherry-picked generated outputs after 90k steps at batch size 1024, lr=1e-4, ~25 million img subset of laion2B-en.</p>
             <h2>Introduction</h2>
@@ -96,7 +98,7 @@
             <h3>Logging loss every 32 steps (instead of every step)</h3>
             <p> The PyTorch XLA guide states to log every N steps [<a href="#references">10</a>] and in general, when accessing the loss' values for logging, there is a TransferFromServer (TPU → CPU) event which adds some idle time. I chose 32 steps since that means that losses would be logged every one or two minutes, which is as often as I'd like without adding too much idle time. </p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/nodynamo-vae-clip/log-loss-idle-time.webp">
+                <img src="assets/profile-pics/nodynamo-vae-clip/log-loss-idle-time.webp" alt="idle time caused by logging loss">
             </div>
             <p class="caption">The trace viewer showing idle time (circled in red) caused by logging loss. Notice the purple TransferFromServer call before the idle time which gets called every time the loss is logged.</p>
             <h3>Writing my own multi-head attention PyTorch module</h3>
@@ -149,7 +151,7 @@ def faster_swiglu(x): # AFTER
             <h3>Modifying VAE and DM architecture to be TPU-friendly</h3>
             <p>When checking Tensorboard traces while training these unmodified networks, I saw that VAE inference took the vast majority of the computation. This is because I had my VAE and DM perform 16x and 8x downsampling respectively, which means that a 256x256 image would eventually be downsampled into a 2x2 tensor. This is ... really small. The less computation there is to do, the worse that GPUs/TPUs can be utilized, so downsampling images to 2x2 is not a good idea.</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/small-models/op-profile.webp">
+                <img src="assets/profile-pics/small-models/op-profile.webp" alt="op profile with small models">
             </div>
             <p class="caption">Small model = bad FLOPs utilization</p>
             <p>Instead, the modified VAE had 8x downsampling with 4x less latent channels (16x16x16 → 32x32x4 latent, by the way this is the latent size described in the LDM paper), and the modified DM had 4x downsampling. Now, the smallest tensors in modified DM will still have an 8x8 spatial dimension, meaning that TPUs can run convolutions more efficiently on them. Also, the DM's downsampling is similar to Stable Diffusion XL [<a href="#references">19</a>], so I took it one step further by copying how SDXL partitions its transformer blocks. In the original SD model, there was one transformer block for every down/up sampling, whereas SDXL has a <i>[0, 2, 10]</i> scheme (no blocks at the highest resolution, two blocks at the middle resolution, and ten blocks at the lowest resolution). To fit in memory, my model had a <i>[0, 1, 2]</i> scheme, shifting the attention block at the highest (thus most memory-consuming) resolution to the lowest resolution.</p>
@@ -157,23 +159,23 @@ def faster_swiglu(x): # AFTER
             Using a large batch size is the first thing that most TPU performance guides tell you to do, but this optimization took me a while to find specifically when training the DM because I had nearly no idle time training the VAE with a per-device batch size of 32 (batch size of 256 over all eight chips), but had 42.7% idle time when training the DM with the same batch size. This is because XLA requires a graph of the training loop to be traced for every training step [<a href="#references">10</a>], which uses up some CPU time. Since the VAE was a relatively simple model, tracing time was not an issue, but the DM was significantly larger, so I needed much larger batch sizes to reduce idle time. At the time, I didn't know about that the CPU time was caused by tracing, but I found out that increasing the batch size increased the TPU execution time but not the CPU time, so I just pushed the batch size to as large as I could. I eventually settled on a batch size of 128 (although I got up to 192) because it was the largest batch size which I could train on without running out of CPU memory while compiling. With a per-device batch size of 128, I had only 12.1% idle time, which was far better than the 42.7% I had earlier. 
             <p>Along with the more TPU-friendly models, training utilizes TPUs much more effectively, going from 23.4% to 55.3% FLOPs utilization at a per-device batch size of 128.</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/nodynamo-vae-clip/op-profile.webp">
+                <img src="assets/profile-pics/nodynamo-vae-clip/op-profile.webp" alt="op profile without torch.compile VAE/CLIP">
             </div>
             <p class="caption">Better model utilization now. But 19.5% of training time is idle, we can still do better!</p>
             <p>I'm shocked by the fact that I was able to train a batch size of 128 with only 16 GiB of memory per chip, XLA is crazy effective. Here are some memory logs:</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/dynamo-vae-clip-run30/text-embedder-memory.webp">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/text-embedder-memory.webp" alt="CLIP memory usage">
             </div>
             <p class="caption">Memory viewer for the CLIP embedder. For a batch size of 128, it only uses 330 MiB!</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/dynamo-vae-clip-run30/dm-memory.webp">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/dm-memory.webp" alt="VAE and DM memory usage">
             </div>
             <p class="caption">Memory viewer for the VAE and DM. For batch size 128, these use almost 14 GiB of memory.</p>
             <h3>Using torch.compile(..., backend='torch_xla_trace_once') for the VAE and CLIP embedder</h3>
             <p>January 5, 2024 update: I think you're supposed to set the backend to 'openxla_eval' now. </p>
             <p>While I removed most of the idle time by logging less frequently, I noticed some idle time on some steps that had didn't seem to be caused by logging (no TransferFromServer calls). Rather, the idle time seemed to have been caused by some bottlenecks:</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/nodynamo-vae-clip/trace-viewer.webp">
+                <img src="assets/profile-pics/nodynamo-vae-clip/trace-viewer.webp" alt="Trace viewer before torch.compile VAE and CLIP">
             </div>
             <p class="caption">More trace viewer snapshots showing idle time even without TransferFromServer (loss logging calls).</p>
             <p>After some searching, I found a GitHub issue with a similar problem. Apparently, the problem was that there was a CPU bottleneck from tracing, causing the idle time. The proposed solution was:</p>
@@ -182,11 +184,11 @@ def faster_swiglu(x): # AFTER
             <p>This was a bit disappointing since a training step with the full-sized DM took around two seconds. This optimization's speedup should've been unrelated to the DM's size since I didn't compile the DM, so I expected this speedup to be negligible (about 0.0255 / 2 = 1.27% speedup) when training. Unsatisfied by a 1% speedup, I continued attempting to compile the DM with TorchDynamo. I eventually got it to train (only when using one TPU core) but I had to reduce the batch size 8x (128 → 16 per-device batch size) to get the thing to fit into memory. And I was running out of Kaggle TPU time, so I just ran a training run using torch.compile only on the VAE and CLIP embedder.</p>
             <p>Yet when I resumed training with what I expected to be a 1% speedup, I got a 25% speedup, with step time going down to 1.6 s/step. Apparently torch.compile made the DM forward, backward, and optimizer step run WAY faster in the Python processes (I'll stress it again, <b>I didn't compile the DM or the optimizer</b>)! I don't know why, but I'll take it.</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/dynamo-vae-clip-run30/trace-viewer.webp">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/trace-viewer.webp" alt="Trace viewer after compile VAE + CLIP">
             </div>
             <p class="caption">Trace viewer when compiling the VAE and CLIP embedder. Look, no idle time!</p>
             <div class="scrollbox">
-                <img src="assets/profile-pics/dynamo-vae-clip-run30/op-profile.webp">
+                <img src="assets/profile-pics/dynamo-vae-clip-run30/op-profile.webp" alt="Op profile after compile VAE + CLIP">
             </div>
             <p class="caption">FLOPs utilization goes from 55.3% without compiling to 68.4% when compiling the VAE and CLIP embedder with torch.compile. Actually, I think FLOPs utilization is closer to 65% since this snapshot didn't profile any loss logging which adds some idle time.</p>
             <h3>Optimization Summary</h3>
@@ -238,7 +240,7 @@ def faster_swiglu(x): # AFTER
             <h3>XLA_USE_BF16=1 destroys training</h3>
             <p>Mixed precision is faster. Using just bfloat16 can speed up TPU training by up to 60% [<a href="#references">9</a>], and PyTorch allows this by setting the environment variable XLA_USE_BF16=1 [<a href="#references">10</a>]. However, while the model forward and backward passes work fine in bfloat16, the noise schedule in the DM (as well as the DDIM sampler) requires the float32 precision, which I realized when all of the DM outputs was black after some training. Inspecting many components of my training script, I eventually found that the noise variances in the noise scheduler would differ between bfloat16 and float32, which messed with the signal and noise variances for each step.</p>
             <div class="scrollbox">
-                <img src="assets/bf16-vs-fp32-signal-var.webp">
+                <img src="assets/bf16-vs-fp32-signal-var.webp" alt="BF16 vs. FP32 signal variance">
             </div>
             <p class="caption">Using bfloat16 results in strange noise scheduler behavior when compared to float32.</p>
             <p>Specifically, in the DDIMSampler code, there are lines:</p>
@@ -251,7 +253,7 @@ beta_ratio = self.betas[t-1] / self.betas[t]
             <p>To deal with this, I set the environment variable XLA_DOWNCAST_BF16=1, which gives me access to float32 precision by casting a tensor to torch.double [<a href="#references">10</a>]. I suppose there are multiple ways to deal with this problem, but this was the first one that came to my mind, and since the noising/denoising computation is negligible compared to the forward/backward passes, I didn't worry too much about optimizing this.</p>
             <p>Another related problem (which I figured out far later) was that normalization had to be set to fp32 for training to run smoothly. I encountered this problem when training the DM using a trained VAE with 32 groups in the GroupNorm layer (to match with the original code; I originally had eight groups in the GN layers as I started this project when my local GPU only had 2 GiB of VRAM (side note: GiB = 2^30 bytes = 1024 MiB, GB = 10^12 bytes = 1000 MB) so my models had to be scaled down a lot). Training would run smoothly for the few first thousand steps or so, but then randomly collapse. This is seen in train3a-c-56. I thought this collapse had to do something with the GN layers, so I dropped the number of groups (only in the DM, not the VAE) to eight. That's train-3a-d-58 (so no, it did not fix the problem). Reading through the original papers again, I realized that they were training their models with AdamW rather than plain Adam. I added AdamW for train3a-e-69. Finding the root problem for this collapse would be a bit trickier than I originally thought.</p>
             <div class="scrollbox">
-                <img src="assets/unstable-norm.webp">
+                <img src="assets/unstable-norm.webp" alt="Model collapse with BF16 normalization">
             </div>
             <p class="caption">Model collapse with GN (groups=32, groups=8) and AdamW. Something else is the problem...</p>
             <p>I don't have this documented, but I remember looking through the activations of each layer of a collapsed model to see what may be going wrong. One, I found out that the norm of the activations kept increasing exponentially after each layer in the collapsed model. Two, the activations all had constant values. Because of the constant value activations, after the last normalization layer, the normalized activations would turn into all zeros, which would yield a loss of 1 (as the DM loss function mean((eps - DM(x, t))^2) where eps is the target noise sampled from a normal distribution, x is the noised image input, and t is the timestep is equal to 1 when DM(x, t) is always equal to 0).</p>
@@ -317,7 +319,7 @@ def train_loop(self, epochs=1, steps_per_epoch=-1, save_every_n_epochs=1):
             <h3>Training from a model checkpoint is slower than training from random initialization</h3>
             <p>During the first epoch, the VAE would train at 2.08 steps/s, but when I resumed training from a model checkpoint, the training speed dropped to 1.13 steps/s, about 54% of normal speed. So I knew that this problem laid in the loaded model, and by running the Tensorboard profiler, I found out that the optimizer step took a long time on the CPU, resulting in lots of TPU idle time. What I found out was that there was a large number of tensors being moved from the CPU to the TPU during the optimizer step, which is slow.</p>
             <div class="scrollbox">
-                <img src="assets/slow-opt-step.webp">
+                <img src="assets/slow-opt-step.webp" alt="Slow opt.step()">
             </div>
             <p class="caption">BEFORE FIX: Notice that the TPUs are idling and its cause: opt_step (correlating to an opt.step() call) has really big Python overhead. Something is up with the optimizer! (Note: this actually runs at around 1.45 steps/s, I don't know why this run is faster than the 1.13 steps/s run where I first saw this problem, but it highlights the same issue)</p>
             <p>I initially tried to move all optimizer parameters to the TPU when I initialized my trainer, but this didn't work for some reason. Thankfully, the fix was pretty easy. I sent the model to the TPU, and then I made my optimizer using the TPU model's weights. Here's what the fix looks like in code:</p>
@@ -381,7 +383,7 @@ def log_step(self,
             <h3>The same model in different parts of training use different amounts of CPU RAM</h3>
             <p>When training the DM, my sessions usually hit a peak between 260 (train3e-a-78) and 290 (train2_pt4-24) GB (out of 330 GB) of RAM usage but there were two runs where I somehow used up like 320 GB of the TPU session's available RAM even though I didn't change the code (train2_pt2-22/23). I don't recall fixing this problem. On the runs where I used 320 GB of RAM, all I did was continue training and saving the model. When I loaded from the saved model in a different session, it just stopped using so much RAM, which is shown in run train2_pt4-24. And if I were to completely run out of RAM on a session, I'd probably reduce the batch size, train the model for a bit, save it, then restart the session and load the saved model with the original batch size.</p>
             <div class="scrollbox">
-                <img src="assets/low-mem.webp">
+                <img src="assets/low-mem.webp" alt="Low CPU memory runs">
             </div>
             <p class="caption">Some training runs eat up more free memory than others for some reason. The only changes between these runs are the checkpoints used.</p>
             <h2>Things That Didn't Work</h2>
@@ -406,32 +408,32 @@ def sinusoidal_timestep_embedding(timestep: int): # timestep between 0-999 inclu
                 <li>Because the different timesteps represent slowly changing levels of noise strength in the input image, it makes sense that rows of timestep embedding that are spatially close to each other (e.g. row 10 and row 11) should have similar element contents (i.e. the vector distance between the rows should be close to 0) since spatially close rows represent similar levels of noise strength. A vanilla learnable embedding does not have this inductive bias whereas the sinusoidal embedding does, which means that training should be much easier with the sinusoidal embedding.</li>
             </ol>
             <div class="scrollbox">
-                <img src="assets/vanilla-sinusoidal-emb.webp">
+                <img src="assets/vanilla-sinusoidal-emb.webp" alt="Vanilla vs. sinusoidal embedding initialization">
             </div>
             <p class="caption">The k-th row on both images represents the activation values of each embedding for t=k. Notice how the different rows in the vanilla embedding are completely independent of each other and how this is not the case for the sinusoidal embedding.</p>
             <p>Below shows a comparison of the DM outputs where the loss is similar and the main difference is the embedding. Note that I said "similar loss" and not "similar training time" since the training run with sinusoidal embeddings (~70k steps to mse=0.267) trained more than twice as quick as the run with vanilla embeddings (~164k steps to mse=0.267):</p>
             <h3>Using vanilla embeddings</h3>
             <div class="scrollbox">
-                <img src="assets/vanilla-outputs.webp">
+                <img src="assets/vanilla-outputs.webp" alt="Samples with vanilla embeddings">
             </div>
             <p class="caption">All the samples from the vanilla embedding run look like paint splotches.</h3>
             <h3>Using sinusoidal embeddings</h3>
             <div class="scrollbox">
-                <img src="assets/sinusoidal-outputs.webp">
+                <img src="assets/sinusoidal-outputs.webp" alt="Samples with sinusoidal embeddings">
             </div>
             <p class="caption">The house and car samples look vaguely like houses and cars, a clear win for the sinusoidal embeddings.</h3>
             <h2>Training Progress</h2>
             <h3>VAE</h3>
             <div class="scrollbox">
-                <img src="assets/vae-loss-curve.webp">
+                <img src="assets/vae-loss-curve.webp" alt="VAE loss curves">
             </div>
             <h3>DM</h3>
             <div class="scrollbox">
-                <img src="assets/dm-loss-curve-full.webp">
+                <img src="assets/dm-loss-curve-full.webp" alt="DM loss curve">
             </div>
             <p class="caption">Note: this is a log-log plot</p>
             <div class="scrollbox">
-                <img src="assets/dm-loss-curve-zoom.webp">
+                <img src="assets/dm-loss-curve-zoom.webp" "DM loss curve (zoomed in)">
             </div>
             <p class="caption">The above plot but ignoring the high-loss areas (after 500 steps, clipping the moment around 3k steps where the loss temporarily spiked). Loss steadily went down at 90k steps which means I could've gotten better results by training longer, but I stopped because I got bored of waiting.</p>
             <h2>Conclusion</h2>
