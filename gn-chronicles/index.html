@@ -7,18 +7,17 @@
         <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
         <meta name="description" content="Group Normalization Math">
         <meta name="keywords" content="latentCall145, AI, ML, programming, group normalization, groupnorm, math, channels-last">
-        <script>
-            MathJax = {
-                tex: {
-                    tags: 'ams'
-                }
-            };
-        </script>
-        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+        <!-- KaTex -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+            onload="renderMathInElement(document.body);"></script>
+
         <link rel="stylesheet" href="../style.css">
         <style>
             .navbar {
-                z-index: 1; /* MathJax text goes over header if this isn't specified */
+                z-index: 1; /* LaTex goes over header if this isn't specified */
             }
             .container {
                 background-color: #ffffff;
@@ -29,6 +28,27 @@
                 padding: 0px;
                 margin: 0px;
                 margin-bottom: 40px;
+            }
+
+            .katex, .katex-display { /* avoid unnecessary horizontal scrollbar for equations */
+                width: calc(100% - 1px);
+            }
+            /* fixes equation numbering overlapping with equation text when scrollbar enabled: https://github.com/KaTeX/KaTeX/issues/3066#issuecomment-1726471803 */
+            .katex-html {
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 3px;
+                .base {
+                  margin: 0 auto;
+                }
+            }
+            .katex-html:has(span.tag) {
+              display: flex !important;
+            }
+            .katex-display>.katex>.katex-html>.tag { 
+              position: relative !important;
+              float: right; 
+              margin-left: 0.25rem;
             }
         </style>
     </head>
@@ -419,8 +439,10 @@
                         S^{(y)}_{ngd}
                     }{\sigma_{ng}}
                 \end{align}
+            </div>
 
-                <p id="f-beta-partial-a">Doing the same for Equation <a href="#w-partials">8</a>:</p>
+            <p id="f-beta-partial-a">Doing the same for Equation <a href="#w-partials">8</a>:</p>
+            <div class="scrollbox">
                 \begin{align}
                 % start of dbias
                 \frac{\partial f}{\partial \beta_{gd}} &= \sum_{n,r}
@@ -767,7 +789,7 @@
             <h2 id="changelog">Changelog</h2>
             <ul>
                 <li>April 2024: Writeup made</li>
-                <li>September 3, 2024: Published this to my site, removed equation 28 from the PDF (purpose was for easier reading on the PDF because of multiline equations)</li>
+                <li>September 3, 2024: Published this to my site, removed equation 27 from the PDF (its purpose was for easier reading on the PDF because of multiline equations)</li>
             </ul>
         </div>
     </body>
