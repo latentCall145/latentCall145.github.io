@@ -56,7 +56,7 @@
         <div class="navbar">
             <a href="../index.html"><b>latentCall145</b></a>
             <a href="../projects/index.html">Projects</a>
-            <a href="../writings/index.html">Writings</a>
+            <a href="../writing/index.html">Writing</a>
             <a href="../random/index.html">Random</a>
         </div>
         <div class="container">
@@ -65,16 +65,17 @@
             <p class="caption">A writeup of the math behind group normalization's forward and backward pass with emphasis on efficient backward pass calculation<br>
             Written by latentCall145 on April 2024 and published to this site on September 3, 2024 (<a href="#changelog">changelog</a>)</p>
 
+            <div class="scrollbox">
+                <img src="assets/gn.svg" alt="GN reduction">
+            </div>
+            <p class="caption">Diagram showing values in image (shaded in blue) that are reduced to one mean/variance during normalization. i drew this cube so many times while coding</p>
+
             <h2>Introduction</h2>
             <p>Normalization is important because it smoothens out loss landscapes which makes training easier. Image models often use batch normalization but some other models like VQGAN (and VQGAN-based models like Stable Diffusion 1, 2, and SDXL) use group normalization (GN) because GN normalizes each element within the batch separately, resulting in stable training even with small batch sizes.</p>
 
             <p>This writeup describes the GN forward + backward pass with a focus on efficient GPU implementation on the backward pass. I got interested in this project in the first place because mixed-precision convolutions work faster in NHWC format (as opposed to NCHW which is PyTorch's default). The problem is that PyTorch's GN GPU implementation doesn't work for NHWC tensors, so I added NHWC support to GN myself to get the NHWC convolution speedup (<a href="https://github.com/latentCall145/channels-last-groupnorm">code</a>).</p>
 
             <h2>Forward Pass</h2>
-            <div class="scrollbox">
-                <img src="assets/gn.svg" alt="GN reduction">
-            </div>
-            <p class="caption">Diagram showing values in image (shaded in blue) that are reduced to one mean/variance during normalization. i drew this cube so many times while coding</p>
 
             <p id="fwd-eqns">Let the GN forward activation go as the following: \(X \in \mathbb{R}^{N \times H \times W \times C}\) is the input. In GN, \(X\) is reshaped to \(x \in \mathbb{R}^{N \times R \times G \times D}\) (where \(R = HW\) and represents the resolution dimension) since that better represents the dimension which is being reduced in the normalization process (along the \(D\) and \(R\) dimension for \(x\)), and thus \(x\) will be mentioned instead of \(X\) for the remainder of this description. \(y\) is the output and is of same shape as \(x\), \(\gamma \in \mathbb{R}^C\) is the weights, and \(\beta \in \mathbb{R}^C\) is the biases. In a similar way to \(x\), \(\gamma, \beta\) will be reshaped to \(\mathbb{R}^{G \times D}\).</p>
 
