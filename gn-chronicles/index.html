@@ -684,7 +684,7 @@
             <h2>Fusing Normalization with Activation</h2>
             <p>One more thing. A lot of models that GN (such as VQGAN-based models) use an activation directly after the normalization. If you implement this with a GN layer followed by an activation layer, values are stored in GPU global memory after normalization, which are then re-loaded to run the activation layer.</p>
 
-            <p>As I stated earlier, loading/storing from GPU global memory is really slow, so we can speed up normalization and activation by running both operations in one layer; this technique is called operator fusion\footnote{Operator fusion is one of the most important features (if not THE most important feature) of ML compilers like Triton or XLA.}. This removes the slow GPU global memory transfer between layers. Operator fusion also saves memory as ML libraries need to store intermediate activations for each layer to calculate gradients, so fusing layers reduces the number of intermediate activations to store.</p>
+            <p>As I stated earlier, loading/storing from GPU global memory is really slow, so we can speed up normalization and activation by running both operations in one layer; this technique is called operator fusion (note: operator fusion is one of the most important features (if not THE most important feature) of ML compilers like Triton or XLA). This removes the slow GPU global memory transfer between layers. Operator fusion also saves memory as ML libraries need to store intermediate activations for each layer to calculate gradients, so fusing layers reduces the number of intermediate activations to store.</p>
 
             <p id="norm-act">
             For the forward pass, we add an activation function \(\phi(x)\) to 

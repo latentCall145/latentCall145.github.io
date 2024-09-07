@@ -5,10 +5,12 @@ body {
     padding: 0;
     background-color: #f4f4f4;
 }
+
 .container {
     width: 80%;
     margin: auto;
     padding: 20px;
+    background-color: #ffffff;
 }
 
 .navbar {
@@ -17,6 +19,7 @@ body {
     position: sticky;
     top: 0;
 }
+
 .navbar a {
     float: left;
     display: block;
@@ -27,6 +30,7 @@ body {
     text-decoration: none;
     transition: background-color 0.3s;
 }
+
 .navbar a:hover {
     background-color: #ddd;
     color: black;
@@ -45,6 +49,7 @@ body {
     margin: 0px;
     margin-bottom: 40px;
 }
+
 .warning {
     color: red;
     font-style: italic;
