@@ -246,50 +246,52 @@ for n in N:
     print(f'    simulation:  {ahead_cv:.5f}')
             </code></pre>
             <p>Here are some results I got for $\mathbb{E}[CV]$ for the different strategies across different boat classes, rounded to 5 decimal places. We're expecting the simulated values to be very close to the theoretical ones:</p>
-            <table>
-              <tr>
-                <th>Number of Rowers</th>
-                <th>Stroke seat (theoretical)</th>
-                <th>Stroke seat (simulation)</th>
-                <th>Rower-ahead (theoretical)</th>
-                <th>Rower-ahead (simulation)</th>
-              </tr>
-              <tr>
-                <td>1 (Single)</td>
-                <td>0</td>
-                <td>0</td>
-                <td>0</td>
-                <td>0</td>
-              </tr>
-              <tr>
-                <td>2 (Double/Pair)</td>
-                <td>0.25</td>
-                <td>0.25007</td>
-                <td>0.25</td>
-                <td>0.25007</td>
-              </tr>
-              <tr>
-                <td>4 (Quad/Four)</td>
-                <td>0.5625</td>
-                <td>0.56252</td>
-                <td>0.625</td>
-                <td>0.62491</td>
-              </tr>
-              <tr>
-                <td>8 (Oct/Eight)</td>
-                <td>0.76562</td>
-                <td>0.76566</td>
-                <td>1.3125</td>
-                <td>1.31188</td>
-              </tr>
-              <tr>
-                <td>24 (<a href="https://www.youtube.com/watch?v=7gtPcnDGPk4">Stampfli</a>)</td>
-                <td>0.9184</td>
-                <td>0.91854</td>
-                <td>3.99306</td>
-                <td>3.99161</td>
-              </tr>
-            </table>
+            <div class="scrollbox">
+              <table>
+                <tr>
+                  <th>Number of Rowers</th>
+                  <th>Stroke seat (theoretical)</th>
+                  <th>Stroke seat (simulation)</th>
+                  <th>Rower-ahead (theoretical)</th>
+                  <th>Rower-ahead (simulation)</th>
+                </tr>
+                <tr>
+                  <td>1 (Single)</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td>2 (Double/Pair)</td>
+                  <td>0.25</td>
+                  <td>0.25007</td>
+                  <td>0.25</td>
+                  <td>0.25007</td>
+                </tr>
+                <tr>
+                  <td>4 (Quad/Four)</td>
+                  <td>0.5625</td>
+                  <td>0.56252</td>
+                  <td>0.625</td>
+                  <td>0.62491</td>
+                </tr>
+                <tr>
+                  <td>8 (Oct/Eight)</td>
+                  <td>0.76562</td>
+                  <td>0.76566</td>
+                  <td>1.3125</td>
+                  <td>1.31188</td>
+                </tr>
+                <tr>
+                  <td>24 (<a href="https://www.youtube.com/watch?v=7gtPcnDGPk4">Stampfli</a>)</td>
+                  <td>0.9184</td>
+                  <td>0.91854</td>
+                  <td>3.99306</td>
+                  <td>3.99161</td>
+                </tr>
+              </table>
+            </div>
             <p>Indeed the simulated values are almost identical to the ones we just derived. Also, another interesting thing to know is that following the stroke seat always results in less expected catch variance compared to following the rower ahead if you have more than two rowers in the boat (for one or two rowers, the two strategies are identical). The difference between the strategies only grows the more rowers you put on a boat, as the stroke seat strategy formula is bounded above by 1 (i.e. $\lim_{n \longrightarrow \infty} (\frac{n-1}{n})^2 = 1$), while the rower-ahead strategy will forever grow at a rate of $\frac{1}{6}$ per added rower. Because more catch variance means worse overall catch timings, the math says that you should be following the stroke seat, not the rower ahead of you.</p>
 
             <h2>Conclusion</h2>
