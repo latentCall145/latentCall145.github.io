@@ -18,6 +18,7 @@ body {
     overflow: hidden;
     position: sticky;
     top: 0;
+    z-index: 1; /* LaTex/images goes over header if this isn't specified */
 }
 
 .navbar a {
