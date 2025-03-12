@@ -102,11 +102,11 @@
             <h2>Math</h2>
             <p id="intro-eqns">Now is the section where I make a ton of assumptions about our circumstances that have little to no practical meaning to rowing. But here we go.</p>
 
-            <p>Some formulas you need to know:</p>
+            <p>Some formulas you need to know (some formulas use N; N = num elements in X):</p>
             \begin{align}
                 \sum_{i=1}^{n} i &= \frac{n(n+1)}{2} \\
                 \sum_{i=1}^{n} i^2 &= \frac{n(n+1)(2n+1)}{6} \\
-                \mu_X &= \frac{1}{N} \sum_{x \in X} x \text{\qquad(N = num elements in X)} \\
+                \mu_X &= \frac{1}{N} \sum_{x \in X} x \\
                 \sigma^2(X) &= \frac{1}{N} \sum_{x \in X} (x - \mu)^2 \\
             \end{align}
 
@@ -146,7 +146,7 @@
               &= \frac{1}{n} (\sum_{i=1}^{n-1} \mathbb{E}[T_i^2])
               - \mathbb{E}[\bar{T}^2] \\
             \end{align} 
-            <p>The only things I wanted to explain were <a href="#expected-cv">E9</a> and <a href="#expected-cv">E13</a>. We got <a href="#expected-cv">E9</a> by factoring out $\bar{T}$ and I initially thought we couldn't do this because I thought that I could only factor out constants from sums. Not even \bar{t} is a constant, as it depends on the values of $t_0,...,t_{n-1}$. But you actually can factor non-constants out from a sum as long the value is constant <i>relative to the index in the sum</i>. $\sum_{i=0}^{n-1} 2 T_i \bar{T}$ equals $\sum_{i=0}^{n-1} 2 T_i (\sum_{j=0}^{n-1} T_j)$, and these $T_j$ terms don't change as $i$ changes in the $i$-sum, so $\bar{T}$ is fair game to be factored out from the $i$-sum. And then for <a href="#expected-cv">E13</a>, since $T_0 = 0$, that means $\mathbb{E}[T_0] = 0$ so I started the sum at $i=1$ instead of $i=0$.</p>
+            <p>The only things I wanted to explain were <a href="#expected-cv">E9</a> and <a href="#expected-cv">E13</a>. We got <a href="#expected-cv">E9</a> by factoring out $\bar{T}$ and I initially thought we couldn't do this because I thought that I could only factor out constants from sums. Not even $\bar{t}$ is a constant, as it depends on the values of $t_0,...,t_{n-1}$. But you actually can factor non-constants out from a sum as long the value is constant <i>relative to the index in the sum</i>. $\sum_{i=0}^{n-1} 2 T_i \bar{T}$ equals $\sum_{i=0}^{n-1} 2 T_i (\sum_{j=0}^{n-1} T_j)$, and these $T_j$ terms don't change as $i$ changes in the $i$-sum, so $\bar{T}$ is fair game to be factored out from the $i$-sum. And then for <a href="#expected-cv">E13</a>, since $T_0 = 0$, that means $\mathbb{E}[T_0] = 0$ so I started the sum at $i=1$ instead of $i=0$.</p>
             <p id="stroke-expected-t-squared">Now let's find $\mathbb{E}[T_i^2]$. There's another definition for variance that would be helpful to know: $\sigma^2(X) = E[X^2] - E[X]^2$. This means $E[X^2] = \sigma^2(X) + E[X]^2 = \sigma^2(X) + \mu_X^2$. Since $T_i$ are normally distributed with $\mu = 0, \sigma^2 = 1$:</p>
             \begin{align}
               E[T_i^2] &= 1 + 0^2 \\
@@ -309,6 +309,7 @@ for n in N:
             <ul>
                 <li>November 1, 2023: Made initial derivation (incorrect method but correct answer)</li>
                 <li>September 13, 2024: Published this to my site</li>
+                <li>March 12, 2025: Minor formatting changes</li>
             </ul>
         </div>
     </body>
