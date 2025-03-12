@@ -9,9 +9,20 @@
         <meta name="keywords" content="latentCall145, programming, rowing, math, statistics">
 
         <!-- KaTex -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+        <!--<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
         <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
         <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+            onload="
+            renderMathInElement(
+              document.body,
+              { delimiters: [{left: '$', right: '$', display: false}] }
+            ); // for $inline math$
+            renderMathInElement(document.body); // for other math
+            "></script>-->
+
+        <link rel="stylesheet" href="../katex/katex.min.css">
+        <script defer src="../katex/katex.min.js"></script>
+        <script defer src="../katex/auto-render.min.js"
             onload="
             renderMathInElement(
               document.body,
@@ -59,7 +70,6 @@
         <div class="navbar">
             <a href="../index.html"><b>latentCall145</b></a>
             <a href="../projects/index.html">Projects</a>
-            <a href="../writing/index.html">Writing</a>
             <a href="../random/index.html">Random</a>
             <a href="../flowdraw/index.html">FlowDraw</a>
         </div>
@@ -69,7 +79,7 @@
             Written by latentCall145 on September 13, 2024 (<a href="#changelog">changelog</a>)</p>
 
             <div class="scrollbox">
-                <img src="assets/catch-var.webp" alt="Diagram of random variables when following stroke seat vs. person ahead of you">
+                <img src="assets/catch-var.webp" alt="Diagram of random variables when following stroke seat vs. person ahead of you" height=900>
             </div>
             <p class="caption">Diagram of the random variables present when following stroke seat's catch vs. following the person ahead of you</p>
 
