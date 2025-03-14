@@ -208,10 +208,10 @@
               <img src="assets/min-ij.webp" alt="min(i,j) for n=5">
             </div>
             <p class="caption">min(i, j) for n=6.</p>
-            <p id="ahead-expected-t-bar-squared-b">The sum of all heights represents $\sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j)$. As you can see, the plot looks like we stacked up squares of height 1 with length $[1, n-1]$. Specifically, $\sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j)$ looks like (and is equivalent to) $\sum_{i=1}^{n-1} i^2$. Resuming where we left off and using <a href="#intro-eqns">E2</a>, we get:</p>
+            <p id="ahead-expected-t-bar-squared-b">The sum of all heights represents $\sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j)$. As you can see, the plot looks like we stacked up squares of height 1 with length $[1, n-1]$. Specifically, $\sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j)$ looks like (and is equivalent to) $\sum_{k=1}^{n-1} k^2$. Resuming where we left off and using <a href="#intro-eqns">E2</a>, we get:</p>
             \begin{align}
               \mathbb{E}[\bar{T}^2] &= \frac{1}{n^2} \sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j) \\
-              &= \frac{1}{n^2} \sum_{i=1}^{n-1} i^2 \\
+              &= \frac{1}{n^2} \sum_{k=1}^{n-1} k^2 \\
               &= \frac{1}{n^2} \frac{n(n-1)(2n-1)}{6} \\
               &= \frac{(n-1)(2n-1)}{6n} \\
             \end{align}
@@ -310,6 +310,7 @@ for n in N:
                 <li>November 1, 2023: Made initial derivation (incorrect method but correct answer)</li>
                 <li>September 13, 2024: Published this to my site</li>
                 <li>March 12, 2025: Minor formatting changes</li>
+                <li>March 14, 2025: Changed $\sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j) = \sum_{k=1}^{n-1} k^2$ instead of $\sum_{i=1}^{n-1} i^2$ because $\sum_{i=1}^{n-1} \sum_{j=1}^{n-1} \text{min}(i, j) = \sum_{i=1}^{n-1} i^2$ implies that $\sum_{j=1}^{n-1} \text{min}(i, j) = i^2$ which is untrue</li>
             </ul>
         </div>
     </body>
