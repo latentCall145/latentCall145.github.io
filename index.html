@@ -33,6 +33,33 @@
                 padding-left: 20px;
                 padding-right: 20px;
             }
+
+            /* Styles for About Me section layout */
+            .about-me-container {
+                display: flex; /* Enable flexbox for the container */
+                align-items: flex-start; /* Align items to the start of the container */
+                gap: 20px; /* Add some space between the image and text */
+                margin-bottom: 20px; /* Add margin below the About Me section */
+            }
+
+            .about-me-container img {
+                max-height: 256px; /* Keep the image height */
+                max-width: 30%; /* Adjust max-width as needed */
+                margin: 0; /* Reset image margins inside this container */
+            }
+
+            .about-me-container-text {
+                flex: 1; /* Allow text to take up remaining space */
+            }
+
+            .about-me-container-text p {
+                text-align: left;
+                padding-left: 0; /* Reset padding if needed */
+                padding-right: 0; /* Reset padding if needed */
+                margin-top: 0; /* Reset top margin for better alignment */
+            }
+
+
         </style>
     </head>
     <body>
@@ -44,10 +71,15 @@
         </div>
         <div class="container">
             <h2>About Me</h2>
-            <img src="assets/turtle32.png" alt="32x32 turtle image" height=256>
-            <p class="caption">A 32x32 turtle image. It's special to me since it was my testing image when I was learning about super-resolution, which happened to be one of my first serious programming projects.</p>
-            <p>I like machine learning and their applications. I'm currently interested in performance optimization, although I have done a bunch of reimplementations on generative image/video models.</p>
-            <p>I love talking about this stuff, so if you want to chat about some stuff I've done or some interesting idea or technique you've seen, feel free to reach out via email!</p>
+            <div class="about-me-container">
+                <img src="assets/turtle32.png" alt="32x32 turtle image" height=256>
+                <div class="about-me-container-text">
+                    <p>I like machine learning and their applications. I'm currently interested in performance optimization, although I have done a bunch of reimplementations on generative image/video models.</p>
+                    <p>I love talking about this stuff, so if you want to chat about some stuff I've done or some interesting idea or technique you've seen, feel free to reach out via email!</p>
+                    <p class="caption">I like this 32x32 pixel turtle image since it was my testing image when I was learning about super-resolution, which happened to be one of my first serious programming projects.</p>
+                </div>
+            </div>
+
 
             <h2>Writing</h2>
             <!--<p>⭐ - Writing I'm especially proud of</p>-->
