@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>LLM Assisted Coding</title>
+        <link rel="icon" type="image/x-icon" href="../assets/turtle32.png">
+        <meta name="description" content="LLM Assisted Coding">
+        <meta name="keywords" content="latentCall145, AI, LLM, programming, coding">
+
+        <link rel="stylesheet" href="../style.css">
+        <style>
+            .hl-endgoal {
+                background-color: #ffe7e7;
+                padding: 0 3px;
+                border-radius: 3px;
+            }
+            .hl-plan {
+                background-color: #e7f2ff;
+                padding: 0 3px;
+                border-radius: 3px;
+            }
+            .hl-questions {
+                background-color: #e7ffe7;
+                padding: 0 3px;
+                border-radius: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="navbar">
+            <a href="../index.html"><b>latentCall145</b></a>
+            <a href="../projects/index.html">Projects</a>
+            <a href="../random/index.html">Random</a>
+            <a href="../flowdraw/index.html">FlowDraw</a>
+        </div>
+        <div class="container">
+            <h1>LLM Assisted Coding</h1>
+            <p class="caption">
+              A list of how I use coding agents for triton-viz
+              <br>
+              Written by latentCall145 on January 30, 2026 (<a href="#changelog">changelog</a>)</p>
+
+            <div class="scrollbox">
+                <img src="assets/tokscale.webp" alt="Toks and scale" width=1200>
+            </div>
+            <p class="caption">My heaviest day of coding agent usage (visualized with tokscale).</p>
+
+            <h2>Context</h2>
+            <p>I'm currently working on a project called triton-viz (<a href="https://github.com/Deep-Learning-Profiling-Tools/triton-viz">github.com/Deep-Learning-Profiling-Tools/triton-viz</a>) that's used to analyze kernels written in DSLs like Triton (currently there's a bit of support for NKI too, and we plan to add others in the future). There's a lot to be done, so I'm experimenting with using AI to do as much of my work as I can. This is a comprehensive list of ways I use LLMs in triton-viz.</p>
+
+            <h2>Coding Agents</h2>
+            <h3>Model/Harness</h3>
+
+            <h4>Codex CLI</h4>
+            <p>I personally use Codex CLI because:</p>
+            <ul>
+                <li>It only costs $20/month to get a pretty high weekly quota. Only recently have I regularly used up my weekly Codex quota, which definitely wouldn't be the case if I used Anthropic's $17/month plan.</li>
+                <li>ChatGPT Plus also comes with a strong all-around model. Personally I prefer Gemini for everyday usage, but Codex is far better for coding agents than Gemini 3, and Claude isn't meant for everyday, non-coding tasks.</li>
+                <li>From what I've heard, Codex can solve harder problems than Opus 4.5. Sure, Codex is slower, but I'm bottlenecked by expressing the tasks I want to get done (rather than waiting for AI responses). Thus, being able to get stuff done with less handholding is more important to me than fast responses, so Codex wins out here.</li>
+            </ul>
+
+            <h4>Gemini CLI</h4>
+            <p>I also use Gemini CLI... but only for side projects (not for triton-viz). It's quite nice because it has <i>really</i> high daily quotas (according to API prices, they give ~$100 of Gemini 3 usage daily, at least for my $20/month Gemini Pro plan which students get free for a year). It also works pretty well for vibe coding (there's a ~5k LoC side project I've vibe-coded over 1-2 weeks that's mostly functional) as the models are good at coding, but Gemini CLI has a couple of problems that prevent me from using it for triton-viz:</p>
+            <ul>
+                <li>I don't think Gemini 3 was designed for my style of coding. I prefer a "one shot, one kill" style where I carefully spec what I want, the LLM thinks for a while, then gets everything right first try. However, when using Gemini 3, it'll work quickly, get things wrong, and I'll go in a loop of copying error traces and the LLM slowly fixing the problem. This "tight-loop" coding is good if you're singularly focused on iterating to some goal, but I usually want to keep the stuff I delegate to LLMs out of mind.</li>
+                <li>Gemini 3 sometimes loops. It'll say something like "I need to check the file. Completed. I need to check the file. Completed. I need ..." over and over until the agent harness detects a loop and stops its response.</li>
+                <li>The harness handles rate limits in an annoying way. When a quota is used up for a model, it'll manually prompt the user to change the model (I don't think there's a way to have it automatically switch to a worse model, like from Gemini 3 Pro to Gemini 3 Flash)</li>
+                <li>The harness sometimes crashes for no reason. I use Gemini CLI in a tmux session and sometimes the CLI just becomes unresponsive and uses 100% CPU. I don't know.</li>
+            </ul>
+
+            <h4>Claude Code</h4>
+            <p>I actually haven't tried Claude Code with Opus 4.5 yet. By the time I ramped up my coding agent usage, Codex worked fine for me and I wasn't in the mood for spending $17 for a month of Opus 4.5. I've tried Claude Code with Sonnet 4 and I still have it with GLM 4.7, but obviously Opus 4.5 is far better than both of these models so I can't really comment on model quality. I guess the UX is better than Codex? But it's not a big deal to me.</p>
+            <p>As for GLM 4.7, I have the cheapest plan ($6/month or $3/month if you buy for the first month/quarter). It was decently helpful in making some apps/reading codebases when I first got it, but GLM 4.7 is not as strong as Codex or Gemini and I feel like the model has been queued up more recently (i.e. not doing any tool calls or reading/writing any code) so I don't plan on renewing my subscription. I still think it's a good deal for the price, but Google gives out Gemini CLI for free and Codex CLI still "only" costs $20/month, so I'd recommend those two for now.</p>
+
+            <h3>How</h3>
+
+            <h4>Normal Coding</h4>
+            <p>I think I still hand-write 60-80% and manually review 100% of the Python in my triton-viz PRs, mainly because prompting exactly what I want Codex to do (and then fixing its misunderstandings) would be harder than just coding myself. So when doing serious coding, I don't do anything crazy. I'll typically only be working on one PR at a time, with a Codex instance and an IDE up to navigate/handwrite code. In this case, LLMs are only an assistant. I don't try to keep the agent running continuously, and I wouldn't care <i>that</i> much if I had no LLM.</p>
+
+            <h4>Things I Ask</h4>
+            <p>A comprehensive list of things I ask Codex (ranked from most to least frequent):</p>
+
+            <h5>Always</h5>
+            <ul>
+                <li>Reviewing code: I review all of my code with Codex before I submit a PR (I just use the "/review" command). For manual reviews, I make sure I agree with anything the LLM wrote and clean up its implementation.</li>
+                <li>Discussing design decisions: It's always good to have a second opinion for these things and I can always reject the LLM's suggestions if I disagree with it, though many times it makes good suggestions. I also don't have a lot of SWE experience, so this is a good way to learn about design patterns that I'm not aware of. I'll typically ask something like "is approach X or Y more maintainable?" or "is there a simpler approach?"</li>
+            </ul>
+
+            <h5>Often</h5>
+            <ul>
+                <li>Explaining how code works: I usually find more success with asking coding agents more narrow questions (e.g. "Why is this code written like X and not Y?"). When I ask it more "big-picture" questions (e.g. "Explain each layer of the call chain when I run X"), the response is usually overloaded with vocabulary which is hard for me to understand.</li>
+                <li>Doing repetitive work like changing an import and making sure all affected files are updated, adding docs/basic tests.</li>
+            </ul>
+
+            <h5>Sometimes</h5>
+            <ul>
+                <li>Making a 1st draft of a PR if I don't have a clear picture on how to code it up
+                    <ul>
+                        <li>case study: for my multithreading PR (<a href="https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/230">https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/230</a>), I had some ideas of what I expected to see in my code (thread-local program IDs, a thread pool to launch multiple blocks on different threads) but I was hazy on <i>everything</i> I needed to do so I just asked Codex to try to implement a solution so I could look at the solution and fix it up. Importantly, the Codex code was a 1st draft and I spent a lot of time talking with Codex to clean it up (as well as manually write code) for my final PR, but I believe the assistance allowed me to skip a couple of hours of "should I do this or that?" and also gave another perspective on the problem that allowed me to make a more robust solution than what I'd have come up with myself. However, I think I should be doing this more often than I currently am since models get better so quickly.</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Vibe Coding</h4>
+            <p>I vibe code on triton-viz for things that:</p>
+            <ol>
+                <li>seem useful but wouldn't have been worth the time to implement properly and</li>
+                <li>I don't know how to do, like frontend PRs (though I suspect I'll ditch this requirement in the near future)</li>
+            </ol>
+            <p>In this case, I can get up to three parallel Codex sessions at a time, each on a separate git worktree, and I usually don't bother reviewing the code, instead just running tests (or for the visualizer, running the UI myself) to make sure things run fine. For project worktrees, I have a root directory with the project name and each subdirectory is a branch within the project. I also have a script to make new worktrees and set it up (e.g. install environment packages). For triton-viz it's like:</p>
+
+            <pre><code>
+triton-viz/
+├── docs/ (worktree for 'docs' branch)
+├── main/ (worktree for 'main' branch)
+└── wt.sh (script to make a new worktree and install packages)
+            </code></pre>
+
+            <p>In addition to the stuff above, I also do these things more often when vibe coding:</p>
+
+            <h5>Planning</h5>
+            <p>When I use AIs to do something big (like <a href="https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247">https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247</a>), I always talk with Codex to build up a plan of what exactly I want to do. Obviously this makes sure the LLM and I are on the same page, but planning also helps me understand what I want when LLMs ask me things I haven't thought through. My prompts usually go in this form:</p>
+
+            <pre><code>
+"I want to accomplish [end goal]. Can you do [vague implementation plan]? Before writing any code, ask me clarification <span class="hl-questions">questions</span>."
+            </code></pre>
+
+            <p>Here are some examples of real prompts I used for some PRs:</p>
+
+            <p>Example 1</p>
+            <pre><code>
+I want to <span class="hl-endgoal">&lt;endgoal&gt;</span>add some documentation to this project as we anticipate many newcomers will want to make their own extensions to this and need a gentle tour on the codebase<span class="hl-endgoal">&lt;/endgoal&gt;</span>. Can you <span class="hl-plan">&lt;plan&gt;</span>add ARCHITECTURE.md files for core/, clients/, dsls/ (i renamed frontends/ -&gt; dsls/ to avoid confusion with TS), visualizer/, frontend/? Each one should give: 1) definition of terms used within a folder (that are not publicly well known - i.e. 'DSL' doesn't count because this has a well known definition, but a 'client' does count as it has a specific meaning within the project), 2) brief description of the subsystems that the module uses, 2) Explanation of the logic flows in place that the module supports (e.g. how triton-viz traces through a kernel), 3) a crash-course on how a user is supposed to add an extension to the module (e.g. how to create another client in 'clients') which goes over required/optional patterns within the source code in the folder + why they're needed, 5) other stuff<span class="hl-plan">&lt;/plan&gt;</span>? be creative! let me know what you'd add into these docs before you start writing
+            </code></pre>
+
+            <p>Example 2 (used for <a href="https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247">https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247</a>)</p>
+            <pre><code>
+- The frontend is written entirely by AI agents so <span class="hl-endgoal">&lt;endgoal&gt;</span>I need the codebase to be very clean and maintainable<span class="hl-endgoal">&lt;/endgoal&gt;</span>. Can you formulate a plan to <span class="hl-plan">&lt;plan&gt;</span>refactor the codebase to allow this?
+  Some thoughts:
+    - DRY: Try to consolidate logic that should be shared (even if it isn't yet)
+    - Debloat: Remove features unless they prove to be useful.
+    - File structure: use directories to group modules of code, which adds documentation without a single README.
+    - Documentation:
+      - write ARCHITECTURE.md for the overall frontend, explaining core objects and data movement.
+      - write MANUAL.md for all user-facing code.
+    - Types: Use TypeScript instead of JavaScript to enforce typing, making debugging easier<span class="hl-plan">&lt;/plan&gt;</span>.
+
+  Let me know how many LoC we can save for each part of the plan.
+            </code></pre>
+
+            <p>For example 2, I also ask for how many lines of code each part of the plan can save, as I inspect LLM plans to see if I can simplify it. One of the things that I think LLMs will do worse than people for some amount of time is deciding which code can be removed. Because of this, during refactors, I ask the LLM to make a list of features that would simplify the code the most when removed, and I then choose what features actually could get removed.</p>
+
+            <h5>AI-Loop</h5>
+            <p>This is a WIP protocol I'm working on (<a href="https://github.com/latentCall145/agent-skills">https://github.com/latentCall145/agent-skills</a>) to try out large-scale, fully vibe-coded stuff. The idea is that I just ask it a bunch of todo tasks and then subagents will tackle each task in a structured way: they will make a new worktree, make a plan on what files to touch, code up the solution, review its code, and merge it into the main branch. I call it a "protocol" since I wanted subagents to predictably pass their work to other subagents, so I added some structure in how tasks are specified, where tasks are located, how to specify which stage a task is in, etc. I also intended for this to support parallel agents working on the same codebase, but it turns out that a single agent can clear out all of my todos pretty quickly, but I have it, I guess.</p>
+            <p>As for implementation details, I have an agent skill "high-level-plan" to turn the requests I have (in natural language) into formal todo items in a 'tasks/todos' folder. Each todo item is given its own file, and I separate the implementation of a feature into these steps (also implemented as agent skills):</p>
+            <ul>
+                <li>low-level-plan: creating a feature branch (in a new worktree), plans which files the code implementation will modify/add, a mini-guide on how to implement the task, and a risk analysis on things that the task implementation might break</li>
+                <li>execute: implements the feature</li>
+                <li>review: makes sure that the feature implementation follows the low level plan and either approves/denies the implementation for merging</li>
+                <li>review-fix: applies fixes to any review feedback</li>
+                <li>integrate: merges a feature branch into a base branch (the base branch is 'main' for my personal projects but may also be the feature branch I am working on if it's a triton-viz PR)</li>
+            </ul>
+            <p>And then I have a final agent skill 'run-overnight' which works from low-level planning to integration until all tasks are completed. I call it run-overnight, because... it's meant to be run overnight to knock out 10-20 tasks while I'm sleeping.</p>
+            <p>To get things started, I spawn an agent in the root directory (e.g. 'triton-viz/'), specify a base branch and a list of things I want done, use the high-level-plan skill to add it to the todo list, then say "run overnight". And hopefully in an hour, all of my tasks are complete! However, new bugs or regressions are added pretty often (typical vibe coding stuff), but I just say which bugs to fix in another high-level-plan session and then use run-overnight again. It's really stupid but it works surprisingly well. For the aforementioned "5k lines of code" project vibe-coded with Gemini CLI, I've only had to go in and manually inspect the code twice to fix stubborn issues. I've also used AI-Loop in triton-viz visualizer PRs to get work done when I'm AFK.</p>
+
+            <h2>Chat Interfaces</h2>
+            <p>I still use chat interfaces to get quick answers to random questions since coding agents are slow and also because I don't want to waste coding agent context on what are basically Google searches (agents get worse the more that context is filled up). I prefer Gemini 3 Flash since it's fast, knowledgeable, and free. In addition, sometimes I use chat interfaces to semi-manually fix issues that coding agents get stuck on. For example, Codex once failed to extract a URL from some HTML because the HTML had a lot of backslashes. Furthermore, removing the backslashes the normal way caused another problem related to invalid Unicode characters. So I tried asking Codex 5.2 high in multiple ways and new chats to fix the problem but it kept failing. I probably spent 30 minutes to 1 hour prompting and waiting for its responses. Eventually I got tired of prompting and seeing Codex try weird approaches to solve the bug, so I came up with my own approach and asked Gemini how to do it. There were some other problems with my approach, but I got a solution ready in ~15 minutes. I'm not sure if Gemini got an answer so quickly because I chose an approach to solve the bug that Codex didn't commit to or if Gemini is just a better model than Codex in some cases. Either way, I think opening up a new chat is a good way to iron out the implementation for isolated problems where context about the rest of the project is distracting.</p>
+
+            <h2 id="changelog">Changelog</h2>
+            <ul>
+                <li>January 30, 2026: Published this to my site</li>
+            </ul>
+        </div>
+    </body>
+</html>
