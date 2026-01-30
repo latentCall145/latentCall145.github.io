@@ -25,6 +25,10 @@
                 padding: 0 3px;
                 border-radius: 3px;
             }
+            pre {
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+            }
         </style>
     </head>
     <body>
@@ -112,8 +116,8 @@
 
             <pre><code>
 triton-viz/
-├── docs/ (worktree for 'docs' branch)
-├── main/ (worktree for 'main' branch)
+├── docs/ (worktree for "docs" branch)
+├── main/ (worktree for "main" branch)
 └── wt.sh (script to make a new worktree and install packages)
             </code></pre>
 
@@ -123,19 +127,19 @@ triton-viz/
             <p>When I use AIs to do something big (like <a href="https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247">https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247</a>), I always talk with Codex to build up a plan of what exactly I want to do. Obviously this makes sure the LLM and I are on the same page, but planning also helps me understand what I want when LLMs ask me things I haven't thought through. My prompts usually go in this form:</p>
 
             <pre><code>
-"I want to accomplish [end goal]. Can you do [vague implementation plan]? Before writing any code, ask me clarification <span class="hl-questions">questions</span>."
+"I want to accomplish <span class="hl-endgoal">[end goal]</span>. Can you do <span class="hl-plan">[vague implementation plan]</span>? Before writing any code, <span class="hl-questions">report your plan to me</span>."
             </code></pre>
 
             <p>Here are some examples of real prompts I used for some PRs:</p>
 
             <p>Example 1</p>
             <pre><code>
-I want to <span class="hl-endgoal">&lt;endgoal&gt;</span>add some documentation to this project as we anticipate many newcomers will want to make their own extensions to this and need a gentle tour on the codebase<span class="hl-endgoal">&lt;/endgoal&gt;</span>. Can you <span class="hl-plan">&lt;plan&gt;</span>add ARCHITECTURE.md files for core/, clients/, dsls/ (i renamed frontends/ -&gt; dsls/ to avoid confusion with TS), visualizer/, frontend/? Each one should give: 1) definition of terms used within a folder (that are not publicly well known - i.e. 'DSL' doesn't count because this has a well known definition, but a 'client' does count as it has a specific meaning within the project), 2) brief description of the subsystems that the module uses, 2) Explanation of the logic flows in place that the module supports (e.g. how triton-viz traces through a kernel), 3) a crash-course on how a user is supposed to add an extension to the module (e.g. how to create another client in 'clients') which goes over required/optional patterns within the source code in the folder + why they're needed, 5) other stuff<span class="hl-plan">&lt;/plan&gt;</span>? be creative! let me know what you'd add into these docs before you start writing
+I want to <span class="hl-endgoal">add some documentation to this project as we anticipate many newcomers will want to make their own extensions to this and need a gentle tour on the codebase</span>. Can you <span class="hl-plan">add ARCHITECTURE.md files for core/, clients/, dsls/ (i renamed frontends/ -&gt; dsls/ to avoid confusion with TS), visualizer/, frontend/? Each one should give: 1) definition of terms used within a folder (that are not publicly well known - i.e. "DSL" doesn't count because this has a well known definition, but a "client" does count as it has a specific meaning within the project), 2) brief description of the subsystems that the module uses, 2) Explanation of the logic flows in place that the module supports (e.g. how triton-viz traces through a kernel), 3) a crash-course on how a user is supposed to add an extension to the module (e.g. how to create another client in "clients") which goes over required/optional patterns within the source code in the folder + why they're needed, 5) other stuff</span>? be creative! <span class="hl-questions">let me know what you'd add into these docs before you start writing</span>
             </code></pre>
 
             <p>Example 2 (used for <a href="https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247">https://github.com/Deep-Learning-Profiling-Tools/triton-viz/pull/247</a>)</p>
             <pre><code>
-- The frontend is written entirely by AI agents so <span class="hl-endgoal">&lt;endgoal&gt;</span>I need the codebase to be very clean and maintainable<span class="hl-endgoal">&lt;/endgoal&gt;</span>. Can you formulate a plan to <span class="hl-plan">&lt;plan&gt;</span>refactor the codebase to allow this?
+- The frontend is written entirely by AI agents so <span class="hl-endgoal">I need the codebase to be very clean and maintainable</span>. Can you formulate a plan to <span class="hl-plan">refactor the codebase to allow this?
   Some thoughts:
     - DRY: Try to consolidate logic that should be shared (even if it isn't yet)
     - Debloat: Remove features unless they prove to be useful.
@@ -143,25 +147,25 @@ I want to <span class="hl-endgoal">&lt;endgoal&gt;</span>add some documentation 
     - Documentation:
       - write ARCHITECTURE.md for the overall frontend, explaining core objects and data movement.
       - write MANUAL.md for all user-facing code.
-    - Types: Use TypeScript instead of JavaScript to enforce typing, making debugging easier<span class="hl-plan">&lt;/plan&gt;</span>.
+    - Types: Use TypeScript instead of JavaScript to enforce typing, making debugging easier</span>.
 
-  Let me know how many LoC we can save for each part of the plan.
+  <span class="hl-questions">Let me know how many LoC we can save for each part of the plan.</span>
             </code></pre>
 
             <p>For example 2, I also ask for how many lines of code each part of the plan can save, as I inspect LLM plans to see if I can simplify it. One of the things that I think LLMs will do worse than people for some amount of time is deciding which code can be removed. Because of this, during refactors, I ask the LLM to make a list of features that would simplify the code the most when removed, and I then choose what features actually could get removed.</p>
 
             <h5>AI-Loop</h5>
             <p>This is a WIP protocol I'm working on (<a href="https://github.com/latentCall145/agent-skills">https://github.com/latentCall145/agent-skills</a>) to try out large-scale, fully vibe-coded stuff. The idea is that I just ask it a bunch of todo tasks and then subagents will tackle each task in a structured way: they will make a new worktree, make a plan on what files to touch, code up the solution, review its code, and merge it into the main branch. I call it a "protocol" since I wanted subagents to predictably pass their work to other subagents, so I added some structure in how tasks are specified, where tasks are located, how to specify which stage a task is in, etc. I also intended for this to support parallel agents working on the same codebase, but it turns out that a single agent can clear out all of my todos pretty quickly, but I have it, I guess.</p>
-            <p>As for implementation details, I have an agent skill "high-level-plan" to turn the requests I have (in natural language) into formal todo items in a 'tasks/todos' folder. Each todo item is given its own file, and I separate the implementation of a feature into these steps (also implemented as agent skills):</p>
+            <p>As for implementation details, I have an agent skill "high-level-plan" to turn the requests I have (in natural language) into formal todo items in a "tasks/todos" folder. Each todo item is given its own file, and I separate the implementation of a feature into these steps (also implemented as agent skills):</p>
             <ul>
                 <li>low-level-plan: creating a feature branch (in a new worktree), plans which files the code implementation will modify/add, a mini-guide on how to implement the task, and a risk analysis on things that the task implementation might break</li>
                 <li>execute: implements the feature</li>
                 <li>review: makes sure that the feature implementation follows the low level plan and either approves/denies the implementation for merging</li>
                 <li>review-fix: applies fixes to any review feedback</li>
-                <li>integrate: merges a feature branch into a base branch (the base branch is 'main' for my personal projects but may also be the feature branch I am working on if it's a triton-viz PR)</li>
+                <li>integrate: merges a feature branch into a base branch (the base branch is "main" for my personal projects but may also be the feature branch I am working on if it's a triton-viz PR)</li>
             </ul>
-            <p>And then I have a final agent skill 'run-overnight' which works from low-level planning to integration until all tasks are completed. I call it run-overnight, because... it's meant to be run overnight to knock out 10-20 tasks while I'm sleeping.</p>
-            <p>To get things started, I spawn an agent in the root directory (e.g. 'triton-viz/'), specify a base branch and a list of things I want done, use the high-level-plan skill to add it to the todo list, then say "run overnight". And hopefully in an hour, all of my tasks are complete! However, new bugs or regressions are added pretty often (typical vibe coding stuff), but I just say which bugs to fix in another high-level-plan session and then use run-overnight again. It's really stupid but it works surprisingly well. For the aforementioned "5k lines of code" project vibe-coded with Gemini CLI, I've only had to go in and manually inspect the code twice to fix stubborn issues. I've also used AI-Loop in triton-viz visualizer PRs to get work done when I'm AFK.</p>
+            <p>And then I have a final agent skill "run-overnight" which works from low-level planning to integration until all tasks are completed. I call it run-overnight, because... it's meant to be run overnight to knock out 10-20 tasks while I'm sleeping.</p>
+            <p>To get things started, I spawn an agent in the root directory (e.g. "triton-viz/"), specify a base branch and a list of things I want done, use the high-level-plan skill to add it to the todo list, then say "run overnight". And hopefully in an hour, all of my tasks are complete! However, new bugs or regressions are added pretty often (typical vibe coding stuff), but I just say which bugs to fix in another high-level-plan session and then use run-overnight again. It's really stupid but it works surprisingly well. For the aforementioned "5k lines of code" project vibe-coded with Gemini CLI, I've only had to go in and manually inspect the code twice to fix stubborn issues. I've also used AI-Loop in triton-viz visualizer PRs to get work done when I'm AFK.</p>
 
             <h2>Chat Interfaces</h2>
             <p>I still use chat interfaces to get quick answers to random questions since coding agents are slow and also because I don't want to waste coding agent context on what are basically Google searches (agents get worse the more that context is filled up). I prefer Gemini 3 Flash since it's fast, knowledgeable, and free. In addition, sometimes I use chat interfaces to semi-manually fix issues that coding agents get stuck on. For example, Codex once failed to extract a URL from some HTML because the HTML had a lot of backslashes. Furthermore, removing the backslashes the normal way caused another problem related to invalid Unicode characters. So I tried asking Codex 5.2 high in multiple ways and new chats to fix the problem but it kept failing. I probably spent 30 minutes to 1 hour prompting and waiting for its responses. Eventually I got tired of prompting and seeing Codex try weird approaches to solve the bug, so I came up with my own approach and asked Gemini how to do it. There were some other problems with my approach, but I got a solution ready in ~15 minutes. I'm not sure if Gemini got an answer so quickly because I chose an approach to solve the bug that Codex didn't commit to or if Gemini is just a better model than Codex in some cases. Either way, I think opening up a new chat is a good way to iron out the implementation for isolated problems where context about the rest of the project is distracting.</p>
