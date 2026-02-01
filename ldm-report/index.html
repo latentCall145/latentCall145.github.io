@@ -17,12 +17,9 @@
     <body>
         <div class="navbar">
             <a href="../index.html"><b>latentCall145</b></a>
-            <a href="../projects/index.html">Projects</a>
             <a href="../random/index.html">Random</a>
-            <a href="../flowdraw/index.html">FlowDraw</a>
         </div>
         <div class="container">
-            <p class="warning">The original version of this report can be found at Weights &amp; Biases (the W&amp;B version also includes some interactive graphs); <a href="https://wandb.ai/tiewa_enguin/tpu_ldm_ddpm_v2/reports/Attempting-to-Train-Stable-Diffusion-From-Scratch-For-Free--Vmlldzo1MTYxNjU0">link</a></p>
             <p class="warning">Want code? Click <a href="https://github.com/latentCall145/latent-diffusion">here</a>.</p>
             <h1>Attempting to Train Stable Diffusion From Scratch For Free</h1>
             <p class="caption">A comprehensive description of my thoughts when trying to make a latent diffusion model (LDM) train as fast as it can while only free compute sources<br>
@@ -281,7 +278,7 @@ def forward(self, x):
         </code></pre>
         <p>After that, there were no ops that ran on the CPU during training, which made training run at a reasonable speed.</p>
         <h3>Not logging loss with loss.item() causes OOMs</h3>
-        <p>I don't know why my solution worked. But I knew that TPU training would be fine for a couple of epochs, then run out of memory, and then when I set loss.item() when logging metrics to W&B, the problem went away.</p>
+        <p>I don't know why my solution worked. But I knew that TPU training would be fine for a couple of epochs, then run out of memory, and then when I set loss.item() when logging metrics to W&amp;B, the problem went away.</p>
         <h3>More CPU memory is used up every epoch</h3>
         <p>In my first few training runs, I noticed that my CPU memory stepped down every epoch (emphasis on epoch; the CPU memory stayed constant between different steps on the same epoch as well as would not drop if I set each epoch to have infinite steps). The only thing I could reason was that my dataloader was being refreshed every epoch, so why don't I instead reuse the same dataloader object for every epoch? Here's roughly what I did in code: </p>
         <pre><code>
